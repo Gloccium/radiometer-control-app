@@ -1,8 +1,14 @@
 import base64
 import binascii
+import time
+
 import serial.tools.list_ports
+from PyQt5.QtCore import QThread
 from PyQt5.QtWidgets import QPushButton, QWidget
+from serial import SerialException
+
 from app import message_pb2
+from app.device_controller import DeviceController
 from app.graph_widget import PlotCanvas
 
 
@@ -19,14 +25,13 @@ class ApplicationWindow(QWidget):
         self.port_buttons = [QPushButton(f'COM{i}', self) for i in range(1, 17)]
         self.plot = None
 
-        self.local_channel_data = []
+        self.mocks_data = []
         self.get_data()
 
-        # self.device_thread = QThread()
-        # self.device_controller = DeviceController()
-        # self.device_controller.moveToThread(self.device_thread)
-        # self.device_thread.started.connect(self.device_controller.load_data)
-        # self.device_thread.start()
+        self.device_thread = QThread()
+        self.device_controller = DeviceController()
+        self.device_controller.moveToThread(self.device_thread)
+        self.device_thread.started.connect(self.device_controller.load_data)
 
         self.init_plot()
         self.init_control_buttons()
@@ -54,20 +59,37 @@ class ApplicationWindow(QWidget):
                 except binascii.Error:
                     print('Invalid packet')
                     continue
-                test = message_pb2.Message()
-                test.ParseFromString(data)
-                self.local_channel_data.append(test.allData.channelData)
+                message = message_pb2.Message()
+                message.ParseFromString(data)
+                self.mocks_data.append(message.allData.channelData)
 
     def init_plot(self):
         self.setGeometry(self.left, self.top, self.width, self.height)
-        self.plot = PlotCanvas(self, channel_data=self.local_channel_data)
+        self.plot = PlotCanvas(self, mocks_data=self.mocks_data, device_controller=self.device_controller)
         self.plot.move(0, 0)
 
+    def start_mocks(self):
+        self.plot.mode = 'MOCKS'
+        self.plot.plot()
+
+    def start_device(self):
+        self.plot.mode = 'DEVICE'
+        self.device_thread.start()
+        if self.device_controller.port_error:
+            print('Could not open port')
+            self.device_thread.quit()
+        self.plot.plot()
+
     def init_control_buttons(self):
-        start_button = QPushButton('Start', self)
-        start_button.move(100, 1000)
-        start_button.resize(140, 100)
-        start_button.clicked.connect(self.plot.plot)
+        start_mocks_button = QPushButton('Start mocks', self)
+        start_mocks_button.move(100, 1000)
+        start_mocks_button.resize(140, 60)
+        start_mocks_button.clicked.connect(self.start_mocks)
+
+        start_device_button = QPushButton('Start device', self)
+        start_device_button.move(100, 1100)
+        start_device_button.resize(140, 60)
+        start_device_button.clicked.connect(self.start_device)
 
         stop_button = QPushButton('Stop', self)
         stop_button.move(300, 1000)
@@ -85,6 +107,7 @@ class ApplicationWindow(QWidget):
 
     def select_port(self, port):
         self.selected_port = port
+        self.device_controller.port = self.selected_port
         self.configure_port_buttons()
 
     def configure_port_buttons(self):
