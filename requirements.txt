@@ -1,1 +1,4 @@
 pyqt5
+matplotlib
+protobuf
+pyserial
