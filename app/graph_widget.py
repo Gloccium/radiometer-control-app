@@ -12,7 +12,9 @@ class PlotCanvas(FigureCanvas):
         self.y = []
         self.count = 0
         self.plot_range = 100
-        self.update_rate = 10
+        self.update_rate = 200
+        self.previous_modifier = 0.999
+        self.current_modifier = 0.001
         self.channel_data = channel_data
         self.previous_value = sum(self.channel_data[self.count]) / len(self.channel_data[self.count])
 
@@ -40,7 +42,8 @@ class PlotCanvas(FigureCanvas):
 
     def update_figure(self):
         self.x.append(self.count)
-        current_value = self.previous_value * 0.999 + sum(self.channel_data[self.count]) / len((self.channel_data[self.count])) * 0.001
+        current_value = self.previous_value * self.previous_modifier \
+                        + sum(self.channel_data[self.count]) / len((self.channel_data[self.count])) * self.current_modifier
         self.y.append(current_value)
         self.previous_value = current_value
         self.count += 1
