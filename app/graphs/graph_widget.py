@@ -1,12 +1,14 @@
 import base64
 import binascii
-from PyQt5.QtCore import QTimer
+import time
+
 from PyQt5.QtWidgets import QSizePolicy
 from google.protobuf.message import DecodeError
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-import time
-from app import message_pb2
+
+from app.messages import message_pb2
+from app.signals.my_signal import MySignal
 
 
 class PlotCanvas(FigureCanvas):
@@ -51,21 +53,15 @@ class PlotCanvas(FigureCanvas):
         FigureCanvas.updateGeometry(self)
         self.setParent(parent)
 
-        self.timer = QTimer()
-        self.time_ms = 0
+        self.signal = MySignal()
+        self.signal.sig_no_args.connect(self.update_figure)
 
+        self.time_ms = 0
         self.configure_plot()
 
     def configure_plot(self):
         self.ax.set_xlim(0, self.max_step_count)
         self.ax.set_xticklabels([f'{round(t, 1)}s' for t in self.time_label])
-
-    def plot(self):
-        self.timer.timeout.connect(self.update_figure)
-        self.timer.start(self.update_rate_ms)
-
-    def stop_plot(self):
-        self.timer.stop()
 
     def get_packages(self):
         self.channel_data = []
@@ -180,7 +176,7 @@ class PlotCanvas(FigureCanvas):
         if self.mode == 'DEVICE':
             self.get_packages()
             if not self.channel_data:
-                return
+                return self.previous_value
             if self.previous_value == 0:
                 current_value = sum([sum(x) / len(x) for x in self.channel_data]) / len(self.channel_data)
             else:
@@ -192,6 +188,9 @@ class PlotCanvas(FigureCanvas):
 
     def update_figure(self):
         current_value = self.get_current_value()
+
+        if current_value == 0:
+            return
 
         self.previous_value = current_value
         self.current_step_number += 1

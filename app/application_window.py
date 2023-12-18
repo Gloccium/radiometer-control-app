@@ -1,13 +1,17 @@
 import base64
 import binascii
+import os
+from os import path
 
 import serial.tools.list_ports
 from PyQt5.QtCore import QThread
 from PyQt5.QtWidgets import QPushButton, QWidget
 
-from app import message_pb2
-from app.device_controller import DeviceController
-from app.graph_widget import PlotCanvas
+from app.messages import message_pb2
+from app.threads.device_controller import DeviceController
+from app.graphs.graph_widget import PlotCanvas
+from app.threads.timer import Timer
+from os.path import dirname as up
 
 
 class ApplicationWindow(QWidget):
@@ -32,6 +36,12 @@ class ApplicationWindow(QWidget):
         self.device_thread.started.connect(self.device_controller.load_data)
 
         self.init_plot()
+
+        self.timer_thread = QThread()
+        self.timer = Timer(self.plot)
+        self.timer.moveToThread(self.timer_thread)
+        self.timer_thread.started.connect(self.timer.start)
+
         self.init_control_buttons()
         self.configure_port_buttons()
         self.show()
@@ -68,15 +78,16 @@ class ApplicationWindow(QWidget):
 
     def start_mocks(self):
         self.plot.mode = 'MOCKS'
-        self.plot.plot()
+        self.timer_thread.start()
 
     def start_device(self):
         self.plot.mode = 'DEVICE'
         self.device_thread.start()
+        self.timer_thread.start()
         if self.device_controller.port_error:
             print('Could not open port')
             self.device_thread.quit()
-        self.plot.plot()
+            self.timer_thread.quit()
 
     def init_control_buttons(self):
         start_mocks_button = QPushButton('Start mocks', self)
@@ -92,7 +103,7 @@ class ApplicationWindow(QWidget):
         stop_button = QPushButton('Stop', self)
         stop_button.move(300, 1000)
         stop_button.resize(140, 100)
-        stop_button.clicked.connect(self.plot.stop_plot)
+        stop_button.clicked.connect(self.timer.stop)
 
         update_port_button = QPushButton('Update ports list', self)
         update_port_button.move(500, 1000)

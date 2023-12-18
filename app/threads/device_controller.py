@@ -1,9 +1,9 @@
 import asyncio
-import time
 from asyncio import new_event_loop
+
 from PyQt5.QtCore import QObject
-from serial_asyncio import open_serial_connection
 from serial import SerialException
+from serial_asyncio import open_serial_connection
 
 
 class DeviceController(QObject):
