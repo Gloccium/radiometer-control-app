@@ -1,11 +1,9 @@
 import base64
 import binascii
-import time
 
 import serial.tools.list_ports
 from PyQt5.QtCore import QThread
 from PyQt5.QtWidgets import QPushButton, QWidget
-from serial import SerialException
 
 from app import message_pb2
 from app.device_controller import DeviceController
