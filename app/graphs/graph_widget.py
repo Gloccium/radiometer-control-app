@@ -6,13 +6,14 @@ from PyQt5.QtWidgets import QSizePolicy
 from google.protobuf.message import DecodeError
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from scipy import signal
 
 from app.messages import message_pb2
 from app.signals.my_signal import MySignal
 
 
 class PlotCanvas(FigureCanvas):
-    def __init__(self, parent=None, mocks_data=None, device_controller=None):
+    def __init__(self, parent=None, device_controller=None):
         self.x1, self.y1, self.x2, self.y2 = [], [], [], []
         self.first_full = False
         self.second_full = True
@@ -26,20 +27,23 @@ class PlotCanvas(FigureCanvas):
         self.total_segment_count = 0
         self.time_label = [0]
         self.break_length = 3
-        self.offset = 0.2
+        self.offset = 100
         self.rescale_sensitivity = 2
         self.last_scaled_y_value = 0
 
         self.previous_modifier = 0.999
         self.current_modifier = 0.001
 
-        self.mode = 'DEVICE'
-
-        self.mocks_data = mocks_data
-
         self.device_controller = device_controller
         self.channel_data = []
+        self.channel_window = 2000
+        self.channel_a = []
+        self.channel_b = []
         self.last_package = 0
+
+        self.b1_param, self.a1_param = signal.iirfilter(2, 10, ftype='butter', btype='lowpass', fs=12000)
+        self.b2_param, self.a2_param = signal.iirfilter(2, 0.1, ftype='butter', btype='lowpass', fs=400)
+        self.decimation_rate = 10
 
         self.previous_value = 0
         self.error_count = 0
@@ -81,8 +85,8 @@ class PlotCanvas(FigureCanvas):
             try:
                 message = message_pb2.Message()
                 message.ParseFromString(data)
-                if message.allData.channelData:
-                    self.channel_data.append(message.allData.channelData)
+                if message.allData:
+                    self.channel_data.append(message.allData)
             except DecodeError:
                 print('Invalid packet')
                 self.error_count += 1
@@ -162,40 +166,68 @@ class PlotCanvas(FigureCanvas):
             if self.second_full:
                 self.ax.set_ylim(self.y2[-1] - self.offset, self.y2[-1] + self.offset)
 
-    def get_current_value(self):
-        current_value = 0
+    @staticmethod
+    def iir_filter(array, b, a):
+        mean = sum(array) / len(array)
+        filtered = signal.lfilter(b, a, [x - mean for x in array])
+        return [e + mean for e in filtered]
 
-        if self.mode == 'MOCKS':
-            if self.previous_value == 0:
-                current_value = sum(self.mocks_data[self.current_step_number]) / len(
-                    (self.mocks_data[self.current_step_number]))
+    @staticmethod
+    def decimate(array, rate):
+        return [array[i] for i in range(0, len(array), rate)]
+
+    def get_delta(self):
+        channel_a = [y[-1] for y in [self.iir_filter(x, self.b1_param, self.a1_param) for x in self.channel_a[-self.channel_window:]]]
+        channel_b = [y[-1] for y in [self.iir_filter(x, self.b1_param, self.a1_param) for x in self.channel_b[-self.channel_window:]]]
+        delta = self.iir_filter([x - y for x, y in zip(channel_a, channel_b)], self.b2_param, self.a2_param)
+        return delta
+
+    def get_intervals(self):
+        prev = -1
+        for e in self.channel_data:
+            if 0 in e.channelAStarts:
+                start = 0
             else:
-                current_value = self.previous_value * self.previous_modifier \
-                                + sum(self.mocks_data[self.current_step_number]) / len(
-                    (self.mocks_data[self.current_step_number])) * self.current_modifier
-        if self.mode == 'DEVICE':
-            self.get_packages()
-            if not self.channel_data:
-                return self.previous_value
-            if self.previous_value == 0:
-                current_value = sum([sum(x) / len(x) for x in self.channel_data]) / len(self.channel_data)
-            else:
-                current_value = self.previous_value * self.previous_modifier \
-                                + sum([sum(x) / len(x) for x in self.channel_data]) / len(
-                    self.channel_data) * self.current_modifier
+                start = 1
+            starts = list(sorted(list(e.channelAStarts) + list(e.channelBStarts)))
+            for i in range(len(starts) - 1):
+                if start == prev and i == 0:
+                    if start == 0:
+                        self.channel_a[-1] += e.channelData[starts[i]:starts[i + 1]]
+                    else:
+                        self.channel_b[-1] += e.channelData[starts[i]:starts[i + 1]]
+                else:
+                    if start == 0:
+                        self.channel_a.append(e.channelData[starts[i]:starts[i + 1]])
+                    if start == 1:
+                        self.channel_b.append(e.channelData[starts[i]:starts[i + 1]])
+                start = (start + 1) % 2
+            if start == 0:
+                self.channel_a.append(e.channelData[starts[-1]:len(e.channelData)])
+            if start == 1:
+                self.channel_b.append(e.channelData[starts[-1]:len(e.channelData)])
+            prev = start
 
-        return current_value
-
-    def update_figure(self):
-        current_value = self.get_current_value()
-
-        if current_value == 0:
+    def get_value(self):
+        if not self.channel_data:
             return
 
-        self.previous_value = current_value
-        self.current_step_number += 1
+        self.get_intervals()
+        delta = self.get_delta()
+        decimated_delta = self.decimate(delta, self.decimation_rate)
+        average_value = sum(decimated_delta) / len(decimated_delta)
 
-        self.add_points(current_value)
+        return average_value
+
+    def update_figure(self):
+        self.get_packages()
+        value = self.get_value()
+
+        if value is None:
+            return
+
+        self.current_step_number += 1
+        self.add_points(value)
         self.check_iteration()
         self.rescale()
         self.switch_plots()
