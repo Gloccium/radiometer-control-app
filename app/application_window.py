@@ -36,12 +36,12 @@ class ApplicationWindow(QWidget):
         self.configure_port_buttons()
         self.show()
 
-    def init_plot(self):
+    def init_plot(self) -> None:
         self.setGeometry(self.left, self.top, self.width, self.height)
         self.plot = PlotCanvas(self, device_controller=self.device_controller)
         self.plot.move(0, 0)
 
-    def start_device(self):
+    def start_device(self) -> None:
         self.plot.mode = 'DEVICE'
         self.device_thread.start()
         self.timer_thread.start()
@@ -50,7 +50,7 @@ class ApplicationWindow(QWidget):
             self.device_thread.quit()
             self.timer_thread.quit()
 
-    def init_control_buttons(self):
+    def init_control_buttons(self) -> None:
         start_device_button = QPushButton('Start device', self)
         start_device_button.move(100, 1000)
         start_device_button.resize(140, 60)
@@ -66,16 +66,16 @@ class ApplicationWindow(QWidget):
         update_port_button.resize(140, 100)
         update_port_button.clicked.connect(self.update_ports)
 
-    def update_ports(self):
+    def update_ports(self) -> None:
         self.active_ports = [port.name for port in serial.tools.list_ports.comports()]
         self.configure_port_buttons()
 
-    def select_port(self, port):
+    def select_port(self, port: str) -> None:
         self.selected_port = port
         self.device_controller.port = self.selected_port
         self.configure_port_buttons()
 
-    def configure_port_buttons(self):
+    def configure_port_buttons(self) -> None:
         offset = 1000
         for i in range(len(self.port_buttons)):
             if self.port_buttons[i].text() in self.active_ports:

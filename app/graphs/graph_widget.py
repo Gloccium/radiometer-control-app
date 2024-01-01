@@ -25,7 +25,7 @@ class PlotCanvas(FigureCanvas):
         self.current_segment_number = 0
         self.max_segment_count = 5
         self.total_segment_count = 0
-        self.time_label = [0]
+        self.time_label = [0.0]
         self.break_length = 3
         self.offset = 100
         self.rescale_sensitivity = 2
@@ -36,7 +36,7 @@ class PlotCanvas(FigureCanvas):
 
         self.device_controller = device_controller
         self.channel_data = []
-        self.channel_window = 2000
+        self.channel_window = 1000
         self.channel_a = []
         self.channel_b = []
         self.last_package = 0
@@ -63,18 +63,18 @@ class PlotCanvas(FigureCanvas):
         self.time_ms = 0
         self.configure_plot()
 
-    def configure_plot(self):
+    def configure_plot(self) -> None:
         self.ax.set_xlim(0, self.max_step_count)
         self.ax.set_xticklabels([f'{round(t, 1)}s' for t in self.time_label])
 
-    def get_packages(self):
+    def get_packages(self) -> None:
         self.channel_data = []
         length = len(self.device_controller.channel_data)
         channel_data = self.device_controller.channel_data[self.last_package:length]
         self.last_package = length
         self.decode_packages(channel_data)
 
-    def decode_packages(self, channel_data):
+    def decode_packages(self, channel_data: list[str]) -> None:
         for packet in channel_data:
             self.package_count += 1
             try:
@@ -92,7 +92,7 @@ class PlotCanvas(FigureCanvas):
                 self.error_count += 1
                 continue
 
-    def update_x_label(self):
+    def update_x_label(self) -> None:
         if self.current_step_number % (self.max_step_count // self.max_segment_count) == 0:
             interval = time.time() - self.time_ms
             self.time_ms = time.time()
@@ -105,7 +105,7 @@ class PlotCanvas(FigureCanvas):
             self.ax.set_xticklabels([f'{round(tm, 1)}s' for tm in self.time_label])
             self.total_segment_count += 1
 
-    def plot_data(self):
+    def plot_data(self) -> None:
         if self.first_full:
             self.x1 = self.x1[1:len(self.x1)]
             self.y1 = self.y1[1:len(self.y1)]
@@ -129,7 +129,7 @@ class PlotCanvas(FigureCanvas):
             p1.remove()
             p2.remove()
 
-    def add_points(self, current_value):
+    def add_points(self, current_value: float) -> None:
         if not self.first_full:
             self.x1.append(self.current_step_number)
             self.y1.append(current_value)
@@ -138,14 +138,14 @@ class PlotCanvas(FigureCanvas):
             self.x2.append(self.current_step_number)
             self.y2.append(current_value)
 
-    def check_iteration(self):
+    def check_iteration(self) -> None:
         if self.is_first_iteration:
             self.time_ms = time.time()
             self.ax.set_ylim(self.y1[0] - self.offset, self.y1[0] + self.offset)
             self.last_scaled_y_value = self.y1[0]
             self.is_first_iteration = False
 
-    def rescale(self):
+    def rescale(self) -> None:
         if not self.first_full and (self.y1[-1] > self.last_scaled_y_value + self.offset / self.rescale_sensitivity
                                     or self.y1[-1] < self.last_scaled_y_value - self.offset / self.rescale_sensitivity):
             self.last_scaled_y_value = self.y1[-1]
@@ -157,7 +157,7 @@ class PlotCanvas(FigureCanvas):
             self.last_scaled_y_value = self.y2[-1]
             self.ax.set_ylim(self.y2[-1] - self.offset, self.y2[-1] + self.offset)
 
-    def switch_plots(self):
+    def switch_plots(self) -> None:
         if self.current_step_number % self.max_step_count == 0:
             self.current_step_number = 0
             self.first_full, self.second_full = self.second_full, self.first_full
@@ -167,22 +167,22 @@ class PlotCanvas(FigureCanvas):
                 self.ax.set_ylim(self.y2[-1] - self.offset, self.y2[-1] + self.offset)
 
     @staticmethod
-    def iir_filter(array, b, a):
+    def iir_filter(array: list[int | float], b: float, a: float) -> list[float]:
         mean = sum(array) / len(array)
         filtered = signal.lfilter(b, a, [x - mean for x in array])
         return [e + mean for e in filtered]
 
     @staticmethod
-    def decimate(array, rate):
+    def decimate(array: list[int | float], rate: int) -> list[int | float]:
         return [array[i] for i in range(0, len(array), rate)]
 
-    def get_delta(self):
+    def get_delta(self) -> list[float]:
         channel_a = [y[-1] for y in [self.iir_filter(x, self.b1_param, self.a1_param) for x in self.channel_a[-self.channel_window:]]]
         channel_b = [y[-1] for y in [self.iir_filter(x, self.b1_param, self.a1_param) for x in self.channel_b[-self.channel_window:]]]
         delta = self.iir_filter([x - y for x, y in zip(channel_a, channel_b)], self.b2_param, self.a2_param)
         return delta
 
-    def get_intervals(self):
+    def get_intervals(self) -> None:
         prev = -1
         for e in self.channel_data:
             if 0 in e.channelAStarts:
@@ -208,7 +208,7 @@ class PlotCanvas(FigureCanvas):
                 self.channel_b.append(e.channelData[starts[-1]:len(e.channelData)])
             prev = start
 
-    def get_value(self):
+    def get_value(self) -> float | None:
         if not self.channel_data:
             return
 
@@ -219,7 +219,7 @@ class PlotCanvas(FigureCanvas):
 
         return average_value
 
-    def update_figure(self):
+    def update_figure(self) -> None:
         self.get_packages()
         value = self.get_value()
 

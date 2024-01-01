@@ -14,12 +14,12 @@ class DeviceController(QObject):
         self.channel_data = []
         self.port_error = False
 
-    def load_data(self):
+    def load_data(self) -> None:
         loop = new_event_loop()
         asyncio.set_event_loop(loop)
         loop.run_until_complete(self.run())
 
-    async def run(self):
+    async def run(self) -> None:
         try:
             reader, writer = await open_serial_connection(url=self.port, baudrate=self.baudrate)
             while True:

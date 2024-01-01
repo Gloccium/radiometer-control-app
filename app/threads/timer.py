@@ -9,16 +9,16 @@ class Timer(QObject):
         self.is_running = False
         self.m_id = self.startTimer(1)
 
-    def timerEvent(self, event):
+    def timerEvent(self, event) -> None:
         if self.m_id == event.timerId():
             pass
         super().timerEvent(event)
 
-    def stop(self):
+    def stop(self) -> None:
         self.is_running = False
 
     @QtCore.pyqtSlot()
-    def start(self):
+    def start(self) -> None:
         self.is_running = True
         while self.is_running:
             self.graph.signal.sig_no_args.emit()
