@@ -50,6 +50,14 @@ class ApplicationWindow(QWidget):
             self.device_thread.quit()
             self.timer_thread.quit()
 
+    def write_data(self):
+        with open('data', 'wb') as f:
+            [f.write(s) for s in self.device_controller.channel_data]
+
+    def stop(self):
+        self.timer.stop()
+        self.write_data()
+
     def init_control_buttons(self) -> None:
         start_device_button = QPushButton('Start device', self)
         start_device_button.move(100, 1000)
@@ -59,7 +67,7 @@ class ApplicationWindow(QWidget):
         stop_button = QPushButton('Stop', self)
         stop_button.move(300, 1000)
         stop_button.resize(140, 100)
-        stop_button.clicked.connect(self.timer.stop)
+        stop_button.clicked.connect(self.stop)
 
         update_port_button = QPushButton('Update ports list', self)
         update_port_button.move(500, 1000)
