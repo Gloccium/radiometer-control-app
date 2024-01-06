@@ -1,25 +1,16 @@
 import serial
 import serial.tools.list_ports
 from PyQt5.QtCore import QThread
-from PyQt5.QtWidgets import QWidget, QTabWidget, QVBoxLayout, QPushButton, QGridLayout
-from app.graphs.graph_widget import PlotCanvas
+from PyQt5.QtWidgets import QWidget, QPushButton
+
 from app.threads.device_controller import DeviceController
 from app.threads.timer import Timer
+from app.widgets.graph_widget import PlotCanvas
 
 
-class TabWidget(QWidget):
-    def __init__(self, parent):
-        super(QWidget, self).__init__(parent)
-        self.layout = QVBoxLayout(self)
-
-        self.tabs = QTabWidget()
-        self.graph_tab = QWidget()
-        self.send_tab = QWidget()
-        self.tabs.resize(1600, 1200)
-
-        self.tabs.addTab(self.graph_tab, "Graph")
-        self.tabs.addTab(self.send_tab, "Send")
-
+class GraphWindow(QWidget):
+    def __init__(self):
+        super().__init__()
         self.selected_port = ''
         self.active_ports = [port.name for port in serial.tools.list_ports.comports()]
         self.port_buttons = [QPushButton(f'COM{i}', self) for i in range(1, 17)]
@@ -43,23 +34,6 @@ class TabWidget(QWidget):
         self.init_control_buttons()
         self.configure_port_buttons()
 
-        self.graph_tab.layout = QGridLayout(self)
-        self.graph_tab.layout.addWidget(self.plot)
-        self.graph_tab.layout.addWidget(self.start_device_button)
-        self.graph_tab.layout.addWidget(self.stop_button)
-        self.graph_tab.layout.addWidget(self.update_port_button)
-        [self.graph_tab.layout.addWidget(button) for button in self.port_buttons]
-        self.graph_tab.setLayout(self.graph_tab.layout)
-
-        self.send_tab.layout = QVBoxLayout(self)
-        self.send_tab.layout.addWidget(QPushButton("Test", self))
-        self.send_tab.setLayout(self.send_tab.layout)
-
-        self.layout.addWidget(self.tabs)
-        self.setLayout(self.layout)
-
-        self.show()
-
     def init_plot(self) -> None:
         self.plot = PlotCanvas(self, device_controller=self.device_controller)
         self.plot.move(0, 0)
@@ -74,7 +48,7 @@ class TabWidget(QWidget):
             self.timer_thread.quit()
 
     def write_data(self):
-        with open('data', 'wb') as f:
+        with open('../data', 'wb') as f:
             [f.write(s) for s in self.device_controller.channel_data]
 
     def stop(self):
