@@ -42,6 +42,9 @@ class GraphWidget(FigureCanvas):
         self.package_count = 0
 
         self.figure, (self.delta_ax, self.channel_a_ax, self.channel_b_ax) = plt.subplots(1, 3, figsize=(21, 9))
+        self.delta_ax.set_title("Delta")
+        self.channel_a_ax.set_title("Channel A")
+        self.channel_b_ax.set_title("Channel B")
         plt.subplots_adjust(left=0.02, right=0.98)
         self.delta_lines, = self.delta_ax.plot([], [], 'r')
         self.channel_a_lines, = self.channel_a_ax.plot([], [], 'g')
