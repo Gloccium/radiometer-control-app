@@ -18,6 +18,7 @@ class GraphWindow(QWidget):
         self.start_device_button = None
         self.stop_button = None
         self.update_port_button = None
+        self.data = []
 
         self.device_thread = QThread()
         self.device_controller = DeviceController()
@@ -49,7 +50,7 @@ class GraphWindow(QWidget):
 
     def write_data(self):
         with open('../data', 'wb') as f:
-            [f.write(s) for s in self.device_controller.channel_data]
+            [f.write(s) for s in self.data]
 
     def stop(self):
         self.timer.stop()

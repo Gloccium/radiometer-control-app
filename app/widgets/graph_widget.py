@@ -14,6 +14,7 @@ from app.signals.my_signal import MySignal
 
 class PlotCanvas(FigureCanvas):
     def __init__(self, parent=None, device_controller=None):
+        self.parent = parent
         self.x1, self.y1, self.x2, self.y2 = [], [], [], []
         self.first_full = False
         self.second_full = True
@@ -39,7 +40,6 @@ class PlotCanvas(FigureCanvas):
         self.channel_window = 1000
         self.channel_a = []
         self.channel_b = []
-        self.last_package = 0
 
         self.b1_param, self.a1_param = signal.iirfilter(2, 10, ftype='butter', btype='lowpass', fs=12000)
         self.b2_param, self.a2_param = signal.iirfilter(2, 0.1, ftype='butter', btype='lowpass', fs=400)
@@ -69,9 +69,9 @@ class PlotCanvas(FigureCanvas):
 
     def get_packages(self) -> None:
         self.channel_data = []
-        length = len(self.device_controller.channel_data)
-        channel_data = self.device_controller.channel_data[self.last_package:length]
-        self.last_package = length
+        channel_data = [self.device_controller.channel_data.get()
+                        for _ in range(self.device_controller.channel_data.qsize())]
+        [self.parent.data.append(packet) for packet in channel_data]
         self.decode_packages(channel_data)
 
     def decode_packages(self, channel_data: list[str]) -> None:
@@ -214,10 +214,8 @@ class PlotCanvas(FigureCanvas):
 
         self.get_intervals()
         delta = self.get_delta()
-        decimated_delta = self.decimate(delta, self.decimation_rate)
-        average_value = sum(decimated_delta) / len(decimated_delta)
 
-        return average_value
+        return delta[len(delta) - 1]
 
     def update_figure(self) -> None:
         self.get_packages()
