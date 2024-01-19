@@ -5,9 +5,9 @@ from PyQt5.QtWidgets import QWidget, QPushButton, QLineEdit, QTimeEdit, QDateEdi
 
 
 class SendingWindow(QWidget):
-    def __init__(self):
+    def __init__(self, settings_window):
         super().__init__()
-        self.url = "https://localhost:7209/upload-measurement"
+        self.settings_window = settings_window
         self.surname_input = QLineEdit(self)
         self.surname_input.setPlaceholderText('Фамилия')
         self.name_input = QLineEdit(self)
@@ -26,6 +26,8 @@ class SendingWindow(QWidget):
         self.send_button.clicked.connect(self.send)
 
     def send(self):
+        url = f'https://{self.settings_window.server_address.text()}/upload-measurement'
+        url = "https://localhost:7209/upload-measurement"
         files = {'file': open(os.path.abspath(os.path.join(__file__, "../../../data")), 'rb')}
         data = {
             "surname": self.surname_input.text(),
@@ -36,4 +38,4 @@ class SendingWindow(QWidget):
             "device": self.device_input.text(),
             "description": self.description_input.text()
         }
-        r = requests.post(self.url, verify=False, files=files, data=data)
+        r = requests.post(url, verify=False, files=files, data=data)
