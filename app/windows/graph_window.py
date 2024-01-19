@@ -87,7 +87,7 @@ class GraphWindow(QWidget):
                 self.port_buttons[i].move(700, offset)
                 self.port_buttons[i].resize(100, 40)
                 self.port_buttons[i].disconnect()
-                self.port_buttons[i].clicked.connect(lambda x, i=i: self.select_port(self.active_ports[i]))
+                self.port_buttons[i].clicked.connect(lambda x, i=i: self.select_port(self.port_buttons[i].text()))
                 self.port_buttons[i].setStyleSheet(f'QPushButton {{background-color: '
                                                    f'{ "#008000" if self.port_buttons[i].text() == self.selected_port else "#FFFFFF"} }}')
                 offset += 60
