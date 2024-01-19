@@ -12,7 +12,7 @@ from app.messages import message_pb2
 from app.signals.my_signal import MySignal
 
 
-class PlotCanvas(FigureCanvas):
+class GraphWidget(FigureCanvas):
     def __init__(self, parent=None, device_controller=None):
         self.parent = parent
         self.x1, self.y1, self.x2, self.y2 = [], [], [], []
@@ -31,9 +31,6 @@ class PlotCanvas(FigureCanvas):
         self.offset = 100
         self.rescale_sensitivity = 2
         self.last_scaled_y_value = 0
-
-        self.previous_modifier = 0.999
-        self.current_modifier = 0.001
 
         self.device_controller = device_controller
         self.channel_data = []

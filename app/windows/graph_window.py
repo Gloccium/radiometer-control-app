@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import QWidget, QPushButton
 
 from app.threads.device_controller import DeviceController
 from app.threads.timer import Timer
-from app.widgets.graph_widget import PlotCanvas
+from app.widgets.graph_widget import GraphWidget
 
 
 class GraphWindow(QWidget):
@@ -36,11 +36,10 @@ class GraphWindow(QWidget):
         self.configure_port_buttons()
 
     def init_plot(self) -> None:
-        self.plot = PlotCanvas(self, device_controller=self.device_controller)
+        self.plot = GraphWidget(self, device_controller=self.device_controller)
         self.plot.move(0, 0)
 
     def start_device(self) -> None:
-        self.plot.mode = 'DEVICE'
         self.device_thread.start()
         self.timer_thread.start()
         if self.device_controller.port_error:
