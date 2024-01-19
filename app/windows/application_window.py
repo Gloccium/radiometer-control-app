@@ -1,5 +1,5 @@
 from PyQt5.QtWidgets import QWidget
-from app.widgets.tab_widget import TabWidget
+from app.widgets.tab_widget.tab_widget import TabWidget
 
 
 class ApplicationWindow(QWidget):

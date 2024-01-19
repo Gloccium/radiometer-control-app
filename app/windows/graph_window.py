@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import QWidget, QPushButton
 
 from app.threads.device_controller import DeviceController
 from app.threads.timer import Timer
-from app.widgets.graph_widget import GraphWidget
+from app.widgets.graph_widget.graph_widget import GraphWidget
 
 
 class GraphWindow(QWidget):

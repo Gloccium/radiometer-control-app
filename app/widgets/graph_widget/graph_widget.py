@@ -8,6 +8,7 @@ from matplotlib import pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from scipy import signal
 
+from app.widgets.graph_widget.graph_data import GraphData
 from app.messages import message_pb2
 from app.signals.my_signal import MySignal
 
@@ -15,10 +16,6 @@ from app.signals.my_signal import MySignal
 class GraphWidget(FigureCanvas):
     def __init__(self, parent=None, device_controller=None):
         self.parent = parent
-        self.x1, self.y1, self.x2, self.y2 = [], [], [], []
-        self.first_full = False
-        self.second_full = True
-        self.is_first_iteration = True
 
         self.update_rate_ms = 200
         self.current_step_number = 0
@@ -28,9 +25,7 @@ class GraphWidget(FigureCanvas):
         self.total_segment_count = 0
         self.time_label = [0.0]
         self.break_length = 3
-        self.offset = 100
         self.rescale_sensitivity = 2
-        self.last_scaled_y_value = 0
 
         self.device_controller = device_controller
         self.channel_data = []
@@ -46,8 +41,16 @@ class GraphWidget(FigureCanvas):
         self.error_count = 0
         self.package_count = 0
 
-        self.figure, self.ax = plt.subplots(figsize=(16, 9))
-        self.lines, = self.ax.plot([], [], 'b')
+        self.figure, (self.delta_ax, self.channel_a_ax, self.channel_b_ax) = plt.subplots(1, 3, figsize=(21, 9))
+        plt.subplots_adjust(left=0.02, right=0.98)
+        self.delta_lines, = self.delta_ax.plot([], [], 'r')
+        self.channel_a_lines, = self.channel_a_ax.plot([], [], 'g')
+        self.channel_b_lines, = self.channel_b_ax.plot([], [], 'b')
+
+        self.delta_graph = GraphData(self.delta_ax, self.delta_lines, 100)
+        self.channel_a_graph = GraphData(self.channel_a_ax, self.channel_a_lines, 1000)
+        self.channel_b_graph = GraphData(self.channel_b_ax, self.channel_b_lines, 1000)
+        self.graphs = [self.delta_graph, self.channel_a_graph, self.channel_b_graph]
 
         FigureCanvas.__init__(self, self.figure)
         FigureCanvas.setSizePolicy(self, QSizePolicy.Expanding, QSizePolicy.Expanding)
@@ -61,8 +64,9 @@ class GraphWidget(FigureCanvas):
         self.configure_plot()
 
     def configure_plot(self) -> None:
-        self.ax.set_xlim(0, self.max_step_count)
-        self.ax.set_xticklabels([f'{round(t, 1)}s' for t in self.time_label])
+        for graph in self.graphs:
+            graph.ax.set_xlim(0, self.max_step_count)
+            graph.ax.set_xticklabels([f'{round(t, 1)}s' for t in self.time_label])
 
     def get_packages(self) -> None:
         self.channel_data = []
@@ -99,69 +103,73 @@ class GraphWidget(FigureCanvas):
                 self.time_label.append(current_time)
             else:
                 self.time_label[self.current_segment_number] = current_time
-            self.ax.set_xticklabels([f'{round(tm, 1)}s' for tm in self.time_label])
+            [graph.ax.set_xticklabels([f'{round(tm, 1)}s' for tm in self.time_label]) for graph in self.graphs]
             self.total_segment_count += 1
 
     def plot_data(self) -> None:
-        if self.first_full:
-            self.x1 = self.x1[1:len(self.x1)]
-            self.y1 = self.y1[1:len(self.y1)]
+        for graph in self.graphs:
+            if graph.first_full:
+                graph.x1 = graph.x1[1:len(graph.x1)]
+                graph.y1 = graph.y1[1:len(graph.y1)]
 
-        if self.second_full:
-            self.x2 = self.x2[1:len(self.x2)]
-            self.y2 = self.y2[1:len(self.y2)]
+            if graph.second_full:
+                graph.x2 = graph.x2[1:len(graph.x2)]
+                graph.y2 = graph.y2[1:len(graph.y2)]
 
-        if not self.first_full:
-            self.lines.set_xdata(self.x1 + [None] * self.break_length + self.x2[self.break_length:])
-            self.lines.set_ydata(self.y1 + [None] * self.break_length + self.y2[self.break_length:])
+            if not graph.first_full:
+                graph.lines.set_xdata(graph.x1 + [None] * self.break_length + graph.x2[self.break_length:])
+                graph.lines.set_ydata(graph.y1 + [None] * self.break_length + graph.y2[self.break_length:])
 
-        if not self.second_full:
-            self.lines.set_xdata(self.x2 + [None] * self.break_length + self.x1[self.break_length:])
-            self.lines.set_ydata(self.y2 + [None] * self.break_length + self.y1[self.break_length:])
+            if not graph.second_full:
+                graph.lines.set_xdata(graph.x2 + [None] * self.break_length + graph.x1[self.break_length:])
+                graph.lines.set_ydata(graph.y2 + [None] * self.break_length + graph.y1[self.break_length:])
 
-        points1 = self.ax.plot(self.x1, self.y1, 'b')
-        points2 = self.ax.plot(self.x2, self.x2, 'b')
+            points1 = graph.ax.plot(graph.x1, graph.y1, 'b')
+            points2 = graph.ax.plot(graph.x2, graph.x2, 'b')
 
-        for p1, p2 in zip(points1, points2):
-            p1.remove()
-            p2.remove()
+            for p1, p2 in zip(points1, points2):
+                p1.remove()
+                p2.remove()
 
-    def add_points(self, current_value: float) -> None:
-        if not self.first_full:
-            self.x1.append(self.current_step_number)
-            self.y1.append(current_value)
+    def add_points(self, delta_value: float, channel_a_value: float, channel_b_value: float) -> None:
+        for graph, value in zip(self.graphs, [delta_value, channel_a_value, channel_b_value]):
+            if not graph.first_full:
+                graph.x1.append(self.current_step_number)
+                graph.y1.append(value)
 
-        if not self.second_full:
-            self.x2.append(self.current_step_number)
-            self.y2.append(current_value)
+            if not graph.second_full:
+                graph.x2.append(self.current_step_number)
+                graph.y2.append(value)
 
     def check_iteration(self) -> None:
-        if self.is_first_iteration:
-            self.time_ms = time.time()
-            self.ax.set_ylim(self.y1[0] - self.offset, self.y1[0] + self.offset)
-            self.last_scaled_y_value = self.y1[0]
-            self.is_first_iteration = False
+        for graph in self.graphs:
+            if graph.is_first_iteration:
+                self.time_ms = time.time()
+                graph.ax.set_ylim(graph.y1[0] - graph.offset, graph.y1[0] + graph.offset)
+                graph.last_scaled_y_value = graph.y1[0]
+                graph.is_first_iteration = False
 
     def rescale(self) -> None:
-        if not self.first_full and (self.y1[-1] > self.last_scaled_y_value + self.offset / self.rescale_sensitivity
-                                    or self.y1[-1] < self.last_scaled_y_value - self.offset / self.rescale_sensitivity):
-            self.last_scaled_y_value = self.y1[-1]
-            self.ax.set_ylim(self.y1[-1] - self.offset, self.y1[-1] + self.offset)
+        for graph in self.graphs:
+            if not graph.first_full and (graph.y1[-1] > graph.last_scaled_y_value + graph.offset / self.rescale_sensitivity
+                                         or graph.y1[-1] < graph.last_scaled_y_value - graph.offset / self.rescale_sensitivity):
+                graph.last_scaled_y_value = graph.y1[-1]
+                graph.ax.set_ylim(graph.y1[-1] - graph.offset, graph.y1[-1] + graph.offset)
 
-        if not self.second_full and (self.y2[-1] > self.last_scaled_y_value + self.offset / self.rescale_sensitivity
-                                     or self.y2[
-                                         -1] < self.last_scaled_y_value - self.offset / self.rescale_sensitivity):
-            self.last_scaled_y_value = self.y2[-1]
-            self.ax.set_ylim(self.y2[-1] - self.offset, self.y2[-1] + self.offset)
+            if not graph.second_full and (graph.y2[-1] > graph.last_scaled_y_value + graph.offset / self.rescale_sensitivity
+                                         or graph.y2[-1] < graph.last_scaled_y_value - graph.offset / self.rescale_sensitivity):
+                graph.last_scaled_y_value = graph.y2[-1]
+                graph.ax.set_ylim(graph.y2[-1] - graph.offset, graph.y2[-1] + graph.offset)
 
     def switch_plots(self) -> None:
-        if self.current_step_number % self.max_step_count == 0:
-            self.current_step_number = 0
-            self.first_full, self.second_full = self.second_full, self.first_full
-            if self.first_full:
-                self.ax.set_ylim(self.y1[-1] - self.offset, self.y1[-1] + self.offset)
-            if self.second_full:
-                self.ax.set_ylim(self.y2[-1] - self.offset, self.y2[-1] + self.offset)
+        for graph in self.graphs:
+            if self.current_step_number % self.max_step_count == 0:
+                self.current_step_number = 0
+                graph.first_full, graph.second_full = graph.second_full, graph.first_full
+                if graph.first_full:
+                    graph.ax.set_ylim(graph.y1[-1] - graph.offset, graph.y1[-1] + graph.offset)
+                if graph.second_full:
+                    graph.ax.set_ylim(graph.y2[-1] - graph.offset, graph.y2[-1] + graph.offset)
 
     @staticmethod
     def iir_filter(array: list[int | float], b: float, a: float) -> list[float]:
@@ -173,11 +181,11 @@ class GraphWidget(FigureCanvas):
     def decimate(array: list[int | float], rate: int) -> list[int | float]:
         return [array[i] for i in range(0, len(array), rate)]
 
-    def get_delta(self) -> list[float]:
+    def get_delta(self) -> tuple[list[float], list[float], list[float]]:
         channel_a = [y[-1] for y in [self.iir_filter(x, self.b1_param, self.a1_param) for x in self.channel_a[-self.channel_window:]]]
         channel_b = [y[-1] for y in [self.iir_filter(x, self.b1_param, self.a1_param) for x in self.channel_b[-self.channel_window:]]]
         delta = self.iir_filter([x - y for x, y in zip(channel_a, channel_b)], self.b2_param, self.a2_param)
-        return delta
+        return delta, channel_a, channel_b
 
     def get_intervals(self) -> None:
         prev = -1
@@ -205,24 +213,24 @@ class GraphWidget(FigureCanvas):
                 self.channel_b.append(e.channelData[starts[-1]:len(e.channelData)])
             prev = start
 
-    def get_value(self) -> float | None:
+    def get_value(self) -> tuple[float, float, float] | None:
         if not self.channel_data:
             return
 
         self.get_intervals()
-        delta = self.get_delta()
+        delta, channel_a, channel_b = self.get_delta()
 
-        return delta[len(delta) - 1]
+        return delta[len(delta) - 1], channel_a[len(channel_a) - 1], channel_b[len(channel_b) - 1]
 
     def update_figure(self) -> None:
         self.get_packages()
-        value = self.get_value()
+        delta_value, channel_a_value, channel_b_value = self.get_value() or (None, None, None)
 
-        if value is None:
+        if delta_value is None or channel_a_value is None or channel_b_value is None:
             return
 
         self.current_step_number += 1
-        self.add_points(value)
+        self.add_points(delta_value, channel_a_value, channel_b_value)
         self.check_iteration()
         self.rescale()
         self.switch_plots()
