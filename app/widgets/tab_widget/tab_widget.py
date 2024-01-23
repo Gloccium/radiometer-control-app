@@ -1,5 +1,4 @@
-from PyQt5 import QtWidgets
-from PyQt5.QtWidgets import QWidget, QTabWidget, QVBoxLayout, QGridLayout, QHBoxLayout
+from PyQt5.QtWidgets import QWidget, QTabWidget, QVBoxLayout, QGridLayout
 
 from app.windows.graph_window import GraphWindow
 from app.windows.sending_window import SendingWindow
@@ -29,7 +28,8 @@ class TabWidget(QWidget):
         self.graph_tab.layout.addWidget(self.graph_window.plot)
         self.graph_tab.layout.addWidget(self.graph_window.toggle_channels_button)
         self.graph_tab.layout.addWidget(self.graph_window.start_button)
-        self.graph_tab.layout.addWidget(self.graph_window.stop_button)
+        self.graph_tab.layout.addWidget(self.graph_window.pause_button)
+        self.graph_tab.layout.addWidget(self.graph_window.finish_button)
         self.graph_tab.setLayout(self.graph_tab.layout)
 
         self.sending_tab.layout = QVBoxLayout(self)

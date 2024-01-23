@@ -11,9 +11,11 @@ class GraphWindow(QWidget):
         super().__init__()
         self.plot = None
         self.start_button = None
-        self.stop_button = None
+        self.pause_button = None
         self.toggle_channels_button = None
+        self.finish_button = None
         self.data = []
+        self.is_paused = False
 
         self.device_thread = QThread()
         self.device_controller = DeviceController()
@@ -34,20 +36,39 @@ class GraphWindow(QWidget):
         self.plot.move(0, 0)
 
     def start_device(self) -> None:
-        self.device_thread.start()
-        self.timer_thread.start()
-        if self.device_controller.port_error:
-            print('Could not open port')
-            self.device_thread.quit()
-            self.timer_thread.quit()
+        if self.device_controller.port != '':
+            self.device_thread.start()
+            self.timer_thread.start()
+            self.pause_button.setDisabled(False)
+            self.finish_button.setDisabled(False)
+            self.start_button.setDisabled(True)
 
     def write_data(self):
         with open('../data', 'wb') as f:
             [f.write(s) for s in self.data]
 
-    def stop(self):
+    def pause(self):
+        self.is_paused = not self.is_paused
+        if self.is_paused:
+            self.timer.stop()
+            self.timer_thread.quit()
+            self.pause_button.setText('Continue')
+        else:
+            self.timer_thread.start()
+            self.pause_button.setText('Pause')
+
+    def finish(self):
         self.timer.stop()
+        self.timer_thread.quit()
+        self.device_thread.quit()
         self.write_data()
+        self.start_button.setDisabled(False)
+        self.pause_button.setText('Pause')
+        self.is_paused = False
+        self.pause_button.setDisabled(True)
+        self.finish_button.setDisabled(True)
+        self.plot.reinitialize_plot()
+        self.device_controller.clear_data()
 
     def toggle_channels(self):
         self.plot.toggle_channels()
@@ -60,8 +81,13 @@ class GraphWindow(QWidget):
         self.start_button = QPushButton('Start', self)
         self.start_button.clicked.connect(self.start_device)
 
-        self.stop_button = QPushButton('Stop', self)
-        self.stop_button.clicked.connect(self.stop)
+        self.pause_button = QPushButton('Pause', self)
+        self.pause_button.clicked.connect(self.pause)
+        self.pause_button.setDisabled(True)
 
         self.toggle_channels_button = QPushButton('Hide channels', self)
         self.toggle_channels_button.clicked.connect(self.toggle_channels)
+
+        self.finish_button = QPushButton('Finish', self)
+        self.finish_button.clicked.connect(self.finish)
+        self.finish_button.setDisabled(True)

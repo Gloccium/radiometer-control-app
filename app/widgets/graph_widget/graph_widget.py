@@ -69,6 +69,27 @@ class GraphWidget(FigureCanvas):
         self.time_ms = 0
         self.configure_plot()
 
+    def reinitialize_plot(self):
+        self.delta_ax.clear()
+        self.channels_ax.clear()
+
+        self.channel_data = []
+        self.channel_a = []
+        self.channel_b = []
+        self.current_step_number = 0
+        self.current_segment_number = 0
+        self.total_segment_count = 0
+
+        self.delta_lines, = self.delta_ax.plot([], [], 'r')
+        self.channel_a_lines, = self.channels_ax.plot([], [], 'g')
+        self.channel_b_lines, = self.channels_ax.plot([], [], 'b')
+
+        self.delta_graph = GraphData(self.delta_ax, 100, self.delta_lines, None)
+        self.channels_graph = GraphData(self.channels_ax, 1000, self.channel_a_lines, self.channel_b_lines)
+        self.graphs = [self.delta_graph, self.channels_graph]
+
+        self.configure_plot()
+
     def toggle_channels(self):
         self.is_channels_visible = not self.is_channels_visible
         self.channels_ax.set_visible(self.is_channels_visible)
@@ -285,10 +306,11 @@ class GraphWidget(FigureCanvas):
                     if start == 1:
                         self.channel_b.append(e.channelData[starts[i]:starts[i + 1]])
                 start = (start + 1) % 2
-            if start == 0:
-                self.channel_a.append(e.channelData[starts[-1]:len(e.channelData)])
-            if start == 1:
-                self.channel_b.append(e.channelData[starts[-1]:len(e.channelData)])
+            if starts:
+                if start == 0:
+                    self.channel_a.append(e.channelData[starts[-1]:len(e.channelData)])
+                if start == 1:
+                    self.channel_b.append(e.channelData[starts[-1]:len(e.channelData)])
             prev = start
 
     def get_value(self) -> tuple[float, float, float] | None:
