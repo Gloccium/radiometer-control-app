@@ -4,7 +4,7 @@ import time
 
 from PyQt5.QtWidgets import QSizePolicy
 from google.protobuf.message import DecodeError
-from matplotlib import pyplot as plt
+from matplotlib import pyplot as plt, gridspec
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from scipy import signal
 
@@ -41,19 +41,22 @@ class GraphWidget(FigureCanvas):
         self.error_count = 0
         self.package_count = 0
 
-        self.figure, (self.delta_ax, self.channel_a_ax, self.channel_b_ax) = plt.subplots(1, 3, figsize=(21, 9))
+        self.is_channels_visible = True
+        self.figure = plt.figure(figsize=(21, 9))
+        self.double_gs = gridspec.GridSpec(2, 1, height_ratios=[1, 1])
+        self.single_gs = gridspec.GridSpec(2, 1, height_ratios=[1000, 1])
+        self.delta_ax = self.figure.add_subplot(self.double_gs[0])
+        self.channels_ax = self.figure.add_subplot(self.double_gs[1])
         self.delta_ax.set_title("Delta")
-        self.channel_a_ax.set_title("Channel A")
-        self.channel_b_ax.set_title("Channel B")
+        self.channels_ax.set_title("Channels")
         plt.subplots_adjust(left=0.02, right=0.98)
         self.delta_lines, = self.delta_ax.plot([], [], 'r')
-        self.channel_a_lines, = self.channel_a_ax.plot([], [], 'g')
-        self.channel_b_lines, = self.channel_b_ax.plot([], [], 'b')
+        self.channel_a_lines, = self.channels_ax.plot([], [], 'g')
+        self.channel_b_lines, = self.channels_ax.plot([], [], 'b')
 
-        self.delta_graph = GraphData(self.delta_ax, self.delta_lines, 100)
-        self.channel_a_graph = GraphData(self.channel_a_ax, self.channel_a_lines, 1000)
-        self.channel_b_graph = GraphData(self.channel_b_ax, self.channel_b_lines, 1000)
-        self.graphs = [self.delta_graph, self.channel_a_graph, self.channel_b_graph]
+        self.delta_graph = GraphData(self.delta_ax, 100, self.delta_lines, None)
+        self.channels_graph = GraphData(self.channels_ax, 1000, self.channel_a_lines, self.channel_b_lines)
+        self.graphs = [self.delta_graph, self.channels_graph]
 
         FigureCanvas.__init__(self, self.figure)
         FigureCanvas.setSizePolicy(self, QSizePolicy.Expanding, QSizePolicy.Expanding)
@@ -65,6 +68,17 @@ class GraphWidget(FigureCanvas):
 
         self.time_ms = 0
         self.configure_plot()
+
+    def toggle_channels(self):
+        self.is_channels_visible = not self.is_channels_visible
+        self.channels_ax.set_visible(self.is_channels_visible)
+        if self.is_channels_visible:
+            self.delta_ax.set_position(self.double_gs[0].get_position(self.figure))
+            self.channels_ax.set_position(self.double_gs[1].get_position(self.figure))
+        else:
+            self.delta_ax.set_position(self.single_gs[0].get_position(self.figure))
+            self.channels_ax.set_position(self.single_gs[1].get_position(self.figure))
+        plt.draw()
 
     def configure_plot(self) -> None:
         for graph in self.graphs:
@@ -109,40 +123,101 @@ class GraphWidget(FigureCanvas):
             [graph.ax.set_xticklabels([f'{round(tm, 1)}s' for tm in self.time_label]) for graph in self.graphs]
             self.total_segment_count += 1
 
-    def plot_data(self) -> None:
-        for graph in self.graphs:
-            if graph.first_full:
-                graph.x1 = graph.x1[1:len(graph.x1)]
-                graph.y1 = graph.y1[1:len(graph.y1)]
+    def plot_delta(self) -> None:
+        if self.delta_graph.first_full:
+            self.delta_graph.x1 = self.delta_graph.x1[1:len(self.delta_graph.x1)]
+            self.delta_graph.y1 = self.delta_graph.y1[1:len(self.delta_graph.y1)]
 
-            if graph.second_full:
-                graph.x2 = graph.x2[1:len(graph.x2)]
-                graph.y2 = graph.y2[1:len(graph.y2)]
+        if self.delta_graph.second_full:
+            self.delta_graph.x2 = self.delta_graph.x2[1:len(self.delta_graph.x2)]
+            self.delta_graph.y2 = self.delta_graph.y2[1:len(self.delta_graph.y2)]
 
-            if not graph.first_full:
-                graph.lines.set_xdata(graph.x1 + [None] * self.break_length + graph.x2[self.break_length:])
-                graph.lines.set_ydata(graph.y1 + [None] * self.break_length + graph.y2[self.break_length:])
+        if not self.delta_graph.first_full:
+            self.delta_graph.lines.set_xdata(self.delta_graph.x1 + [None] * self.break_length + self.delta_graph.x2[self.break_length:])
+            self.delta_graph.lines.set_ydata(self.delta_graph.y1 + [None] * self.break_length + self.delta_graph.y2[self.break_length:])
 
-            if not graph.second_full:
-                graph.lines.set_xdata(graph.x2 + [None] * self.break_length + graph.x1[self.break_length:])
-                graph.lines.set_ydata(graph.y2 + [None] * self.break_length + graph.y1[self.break_length:])
+        if not self.delta_graph.second_full:
+            self.delta_graph.lines.set_xdata(self.delta_graph.x2 + [None] * self.break_length + self.delta_graph.x1[self.break_length:])
+            self.delta_graph.lines.set_ydata(self.delta_graph.y2 + [None] * self.break_length + self.delta_graph.y1[self.break_length:])
 
-            points1 = graph.ax.plot(graph.x1, graph.y1, 'b')
-            points2 = graph.ax.plot(graph.x2, graph.x2, 'b')
+        delta_points_1 = self.delta_graph.ax.plot(self.delta_graph.x1, self.delta_graph.y1, 'b')
+        delta_points_2 = self.delta_graph.ax.plot(self.delta_graph.x2, self.delta_graph.x2, 'b')
 
-            for p1, p2 in zip(points1, points2):
-                p1.remove()
-                p2.remove()
+        for p1, p2 in zip(delta_points_1, delta_points_2):
+            p1.remove()
+            p2.remove()
+
+    def plot_channels(self):
+        if self.channels_graph.first_full:
+            self.channels_graph.x1 = self.channels_graph.x1[1:len(self.channels_graph.x1)]
+            self.channels_graph.y1 = self.channels_graph.y1[1:len(self.channels_graph.y1)]
+
+            self.channels_graph.x1_b = self.channels_graph.x1_b[1:len(self.channels_graph.x1_b)]
+            self.channels_graph.y1_b = self.channels_graph.y1_b[1:len(self.channels_graph.y1_b)]
+
+        if self.channels_graph.second_full:
+            self.channels_graph.x2 = self.channels_graph.x2[1:len(self.channels_graph.x2)]
+            self.channels_graph.y2 = self.channels_graph.y2[1:len(self.channels_graph.y2)]
+
+            self.channels_graph.x2_b = self.channels_graph.x2_b[1:len(self.channels_graph.x2_b)]
+            self.channels_graph.y2_b = self.channels_graph.y2_b[1:len(self.channels_graph.y2_b)]
+
+        if not self.channels_graph.first_full:
+            self.channels_graph.lines.set_xdata(
+                self.channels_graph.x1 + [None] * self.break_length + self.channels_graph.x2[self.break_length:])
+            self.channels_graph.lines.set_ydata(
+                self.channels_graph.y1 + [None] * self.break_length + self.channels_graph.y2[self.break_length:])
+
+            self.channels_graph.lines_b.set_xdata(
+                self.channels_graph.x1_b + [None] * self.break_length + self.channels_graph.x2_b[self.break_length:])
+            self.channels_graph.lines_b.set_ydata(
+                self.channels_graph.y1_b + [None] * self.break_length + self.channels_graph.y2_b[self.break_length:])
+
+        if not self.channels_graph.second_full:
+            self.channels_graph.lines.set_xdata(
+                self.channels_graph.x2 + [None] * self.break_length + self.channels_graph.x1[self.break_length:])
+            self.channels_graph.lines.set_ydata(
+                self.channels_graph.y2 + [None] * self.break_length + self.channels_graph.y1[self.break_length:])
+
+            self.channels_graph.lines_b.set_xdata(
+                self.channels_graph.x2_b + [None] * self.break_length + self.channels_graph.x1_b[self.break_length:])
+            self.channels_graph.lines_b.set_ydata(
+                self.channels_graph.y2_b + [None] * self.break_length + self.channels_graph.y1_b[self.break_length:])
+
+        channel_a_points_1 = self.channels_graph.ax.plot(self.channels_graph.x1, self.channels_graph.y1, 'r')
+        channel_a_points_2 = self.channels_graph.ax.plot(self.channels_graph.x2, self.channels_graph.x2, 'r')
+
+        channel_b_points_1 = self.channels_graph.ax.plot(self.channels_graph.x1_b, self.channels_graph.y1_b, 'b')
+        channel_b_points_2 = self.channels_graph.ax.plot(self.channels_graph.x2_b, self.channels_graph.x2_b, 'b')
+
+        for a1, a2, b1, b2 in zip(channel_a_points_1, channel_a_points_2, channel_b_points_1, channel_b_points_2):
+            a1.remove()
+            a2.remove()
+            b1.remove()
+            b2.remove()
 
     def add_points(self, delta_value: float, channel_a_value: float, channel_b_value: float) -> None:
-        for graph, value in zip(self.graphs, [delta_value, channel_a_value, channel_b_value]):
-            if not graph.first_full:
-                graph.x1.append(self.current_step_number)
-                graph.y1.append(value)
+        if not self.delta_graph.first_full:
+            self.delta_graph.x1.append(self.current_step_number)
+            self.delta_graph.y1.append(delta_value)
 
-            if not graph.second_full:
-                graph.x2.append(self.current_step_number)
-                graph.y2.append(value)
+        if not self.delta_graph.second_full:
+            self.delta_graph.x2.append(self.current_step_number)
+            self.delta_graph.y2.append(delta_value)
+
+        if not self.channels_graph.first_full:
+            self.channels_graph.x1.append(self.current_step_number)
+            self.channels_graph.y1.append(channel_a_value)
+
+            self.channels_graph.x1_b.append(self.current_step_number)
+            self.channels_graph.y1_b.append(channel_b_value)
+
+        if not self.channels_graph.second_full:
+            self.channels_graph.x2.append(self.current_step_number)
+            self.channels_graph.y2.append(channel_a_value)
+
+            self.channels_graph.x2_b.append(self.current_step_number)
+            self.channels_graph.y2_b.append(channel_b_value)
 
     def check_iteration(self) -> None:
         for graph in self.graphs:
@@ -237,7 +312,8 @@ class GraphWidget(FigureCanvas):
         self.check_iteration()
         self.rescale()
         self.switch_plots()
-        self.plot_data()
+        self.plot_delta()
+        self.plot_channels()
 
         self.figure.canvas.draw()
         self.figure.canvas.flush_events()

@@ -27,6 +27,7 @@ class TabWidget(QWidget):
 
         self.graph_tab.layout = QGridLayout(self)
         self.graph_tab.layout.addWidget(self.graph_window.plot)
+        self.graph_tab.layout.addWidget(self.graph_window.toggle_channels_button)
         self.graph_tab.layout.addWidget(self.graph_window.start_button)
         self.graph_tab.layout.addWidget(self.graph_window.stop_button)
         self.graph_tab.setLayout(self.graph_tab.layout)

@@ -12,6 +12,7 @@ class GraphWindow(QWidget):
         self.plot = None
         self.start_button = None
         self.stop_button = None
+        self.toggle_channels_button = None
         self.data = []
 
         self.device_thread = QThread()
@@ -48,13 +49,19 @@ class GraphWindow(QWidget):
         self.timer.stop()
         self.write_data()
 
+    def toggle_channels(self):
+        self.plot.toggle_channels()
+        if self.plot.is_channels_visible:
+            self.toggle_channels_button.setText('Hide channels')
+        else:
+            self.toggle_channels_button.setText('Show channels')
+
     def init_control_buttons(self) -> None:
         self.start_button = QPushButton('Start', self)
-        self.start_button.move(100, 1000)
-        self.start_button.resize(140, 60)
         self.start_button.clicked.connect(self.start_device)
 
         self.stop_button = QPushButton('Stop', self)
-        self.stop_button.move(300, 1000)
-        self.stop_button.resize(140, 100)
         self.stop_button.clicked.connect(self.stop)
+
+        self.toggle_channels_button = QPushButton('Hide channels', self)
+        self.toggle_channels_button.clicked.connect(self.toggle_channels)
