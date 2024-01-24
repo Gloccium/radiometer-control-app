@@ -1,5 +1,6 @@
 from PyQt5.QtCore import QThread
 from PyQt5.QtWidgets import QWidget, QPushButton
+from serial import Serial, SerialException
 
 from app.threads.device_controller import DeviceController
 from app.threads.timer import Timer
@@ -20,7 +21,7 @@ class GraphWindow(QWidget):
         self.device_thread = QThread()
         self.device_controller = DeviceController()
         self.device_controller.moveToThread(self.device_thread)
-        self.device_thread.started.connect(self.device_controller.load_data)
+        self.device_thread.started.connect(self.device_controller.run)
 
         self.init_plot()
 
@@ -37,6 +38,13 @@ class GraphWindow(QWidget):
 
     def start_device(self) -> None:
         if self.device_controller.port != '':
+            try:
+                serial = Serial(self.device_controller.port, baudrate=self.device_controller.baudrate)
+                serial.reset_input_buffer()
+                serial.close()
+            except SerialException:
+                print('Could not open port')
+                return
             self.device_thread.start()
             self.timer_thread.start()
             self.pause_button.setDisabled(False)
@@ -68,7 +76,7 @@ class GraphWindow(QWidget):
         self.pause_button.setDisabled(True)
         self.finish_button.setDisabled(True)
         self.plot.reinitialize_plot()
-        self.device_controller.clear_data()
+        self.device_controller.stop()
 
     def toggle_channels(self):
         self.plot.toggle_channels()
