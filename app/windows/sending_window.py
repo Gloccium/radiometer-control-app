@@ -1,41 +1,50 @@
 import os
 
 import requests
-from PyQt5.QtWidgets import QWidget, QPushButton, QLineEdit, QTimeEdit, QDateEdit
+from PyQt5.QtWidgets import QWidget, QPushButton, QLineEdit, QTimeEdit, QDateEdit, QComboBox
 
 
 class SendingWindow(QWidget):
     def __init__(self, settings_window):
         super().__init__()
         self.settings_window = settings_window
-        self.surname_input = QLineEdit(self)
-        self.surname_input.setPlaceholderText('Фамилия')
-        self.name_input = QLineEdit(self)
-        self.name_input.setPlaceholderText('Имя')
-        self.patronymic_input = QLineEdit(self)
-        self.patronymic_input.setPlaceholderText('Отчество')
-        self.date_input = QDateEdit()
-        self.time_input = QTimeEdit()
-        self.patient_input = QLineEdit(self)
-        self.patient_input.setPlaceholderText('Пациент')
-        self.device_input = QLineEdit(self)
-        self.device_input.setPlaceholderText('Устройство')
-        self.description_input = QLineEdit(self)
-        self.description_input.setPlaceholderText('Описание')
+        self.devices = []
+
+        self.surname = QLineEdit(self)
+        self.name = QLineEdit(self)
+        self.patronymic = QLineEdit(self)
+        self.date = QDateEdit()
+        self.time = QTimeEdit()
+        self.patient = QLineEdit(self)
+        self.device = QComboBox(self)
+        self.description = QLineEdit(self)
         self.send_button = QPushButton('Отправить', self)
+        self.configure_elements()
+
+    def configure_elements(self):
+        self.surname.setPlaceholderText('Фамилия')
+        self.name.setPlaceholderText('Имя')
+        self.patronymic.setPlaceholderText('Отчество')
+        self.patient.setPlaceholderText('Пациент')
+        self.device.setPlaceholderText('Устройство')
+        self.description.setPlaceholderText('Описание')
         self.send_button.clicked.connect(self.send)
+
+    def update(self):
+        self.device.clear()
+        self.device.addItems(['Устройство ' + d['Name'] for d in self.devices])
 
     def send(self):
         url = f'https://{self.settings_window.server_address.text()}/upload-measurement'
         url = "https://localhost:7209/upload-measurement"
         files = {'file': open(os.path.abspath(os.path.join(__file__, "../../../data")), 'rb')}
         data = {
-            "surname": self.surname_input.text(),
-            "name": self.name_input.text(),
-            "patronymic": self.patronymic_input.text(),
-            "time": f'{self.date_input.dateTime().toString("yyyy-MM-dd")} {self.time_input.time().toString("hh:mm:ss")}',
-            "patient": self.patient_input.text(),
-            "device": self.device_input.text(),
-            "description": self.description_input.text()
+            "surname": self.surname.text(),
+            "name": self.name.text(),
+            "patronymic": self.patronymic.text(),
+            "time": f'{self.date.dateTime().toString("yyyy-MM-dd")} {self.time.time().toString("hh:mm:ss")}',
+            "patient": self.patient.text(),
+            "device": self.device.text(),
+            "description": self.description.text()
         }
         r = requests.post(url, verify=False, files=files, data=data)
