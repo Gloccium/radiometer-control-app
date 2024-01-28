@@ -16,7 +16,6 @@ class GraphWindow(QWidget):
         self.toggle_channels_button = None
         self.finish_button = None
         self.data = []
-        self.is_paused = False
 
         self.device_thread = QThread()
         self.device_controller = DeviceController()
@@ -56,12 +55,13 @@ class GraphWindow(QWidget):
             [f.write(s) for s in self.data]
 
     def pause(self):
-        self.is_paused = not self.is_paused
-        if self.is_paused:
+        self.device_controller.is_paused = not self.device_controller.is_paused
+        if self.device_controller.is_paused:
             self.timer.stop()
             self.timer_thread.quit()
             self.pause_button.setText('Continue')
         else:
+            self.device_controller.serial.reset_input_buffer()
             self.timer_thread.start()
             self.pause_button.setText('Pause')
 
@@ -70,9 +70,10 @@ class GraphWindow(QWidget):
         self.timer_thread.quit()
         self.device_thread.quit()
         self.write_data()
+        self.data = []
         self.start_button.setDisabled(False)
         self.pause_button.setText('Pause')
-        self.is_paused = False
+        self.device_controller.is_paused = False
         self.pause_button.setDisabled(True)
         self.finish_button.setDisabled(True)
         self.plot.reinitialize_plot()
