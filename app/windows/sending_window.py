@@ -1,6 +1,7 @@
 import os
 
 import requests
+from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QWidget, QPushButton, QLineEdit, QTimeEdit, QDateEdit, QComboBox
 
 
@@ -28,6 +29,8 @@ class SendingWindow(QWidget):
         self.patient.setPlaceholderText('Пациент')
         self.device.setPlaceholderText('Устройство')
         self.description.setPlaceholderText('Описание')
+        self.device.setEditable(True)
+        self.device.completer().setCompletionMode(QtWidgets.QCompleter.CompletionMode.PopupCompletion)
         self.send_button.clicked.connect(self.send)
 
     def update(self):
