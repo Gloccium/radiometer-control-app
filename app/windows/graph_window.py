@@ -12,7 +12,6 @@ class GraphWindow(QWidget):
         super().__init__()
         self.plot = None
         self.start_button = None
-        self.pause_button = None
         self.toggle_channels_button = None
         self.finish_button = None
         self.data = []
@@ -46,24 +45,12 @@ class GraphWindow(QWidget):
                 return
             self.device_thread.start()
             self.timer_thread.start()
-            self.pause_button.setDisabled(False)
             self.finish_button.setDisabled(False)
             self.start_button.setDisabled(True)
 
     def write_data(self):
         with open('../data', 'wb') as f:
             [f.write(s) for s in self.data]
-
-    def pause(self):
-        self.device_controller.is_paused = not self.device_controller.is_paused
-        if self.device_controller.is_paused:
-            self.timer.stop()
-            self.timer_thread.quit()
-            self.pause_button.setText('Continue')
-        else:
-            self.device_controller.serial.reset_input_buffer()
-            self.timer_thread.start()
-            self.pause_button.setText('Pause')
 
     def finish(self):
         self.timer.stop()
@@ -72,9 +59,6 @@ class GraphWindow(QWidget):
         self.write_data()
         self.data = []
         self.start_button.setDisabled(False)
-        self.pause_button.setText('Pause')
-        self.device_controller.is_paused = False
-        self.pause_button.setDisabled(True)
         self.finish_button.setDisabled(True)
         self.plot.reinitialize_plot()
         self.device_controller.stop()
@@ -89,10 +73,6 @@ class GraphWindow(QWidget):
     def init_control_buttons(self) -> None:
         self.start_button = QPushButton('Start', self)
         self.start_button.clicked.connect(self.start_device)
-
-        self.pause_button = QPushButton('Pause', self)
-        self.pause_button.clicked.connect(self.pause)
-        self.pause_button.setDisabled(True)
 
         self.toggle_channels_button = QPushButton('Hide channels', self)
         self.toggle_channels_button.clicked.connect(self.toggle_channels)

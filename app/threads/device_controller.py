@@ -14,7 +14,6 @@ class DeviceController(QObject):
         self.channel_data = Queue()
         self.serial = None
         self.is_running = False
-        self.is_paused = False
 
     def stop(self):
         self.is_running = False
@@ -25,8 +24,7 @@ class DeviceController(QObject):
         self.serial.reset_input_buffer()
         reader = Reader(self.serial)
         while self.is_running:
-            if not self.is_paused:
-                packet = reader.readline()
-                self.channel_data.put(packet)
+            packet = reader.readline()
+            self.channel_data.put(packet)
         self.serial.close()
         self.channel_data = Queue()

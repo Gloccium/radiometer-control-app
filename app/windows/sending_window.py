@@ -1,13 +1,15 @@
+import asyncio
 import os
-
-import requests
+import aiohttp
 from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QWidget, QPushButton, QLineEdit, QTimeEdit, QDateEdit, QComboBox
+from qasync import asyncSlot, asyncClose
 
 
 class SendingWindow(QWidget):
     def __init__(self, settings_window):
         super().__init__()
+        self.session = aiohttp.ClientSession(loop=asyncio.get_event_loop())
         self.settings_window = settings_window
         self.devices = []
 
@@ -37,17 +39,26 @@ class SendingWindow(QWidget):
         self.device.clear()
         self.device.addItems(['Устройство ' + d['Name'] for d in self.devices])
 
-    def send(self):
-        url = f'https://{self.settings_window.server_address.text()}/upload-measurement'
-        url = "https://localhost:7209/upload-measurement"
-        files = {'file': open(os.path.abspath(os.path.join(__file__, "../../../data")), 'rb')}
+    @asyncSlot()
+    async def send(self):
+        upload_measurement_url = f'https://{self.settings_window.server_address.text()}/upload-measurement'
+        upload_measurement_url = "https://localhost:7209/upload-measurement"
         data = {
             "surname": self.surname.text(),
             "name": self.name.text(),
             "patronymic": self.patronymic.text(),
             "time": f'{self.date.dateTime().toString("yyyy-MM-dd")} {self.time.time().toString("hh:mm:ss")}',
             "patient": self.patient.text(),
-            "device": self.device.text(),
-            "description": self.description.text()
+            "device": self.device.currentText(),
+            "description": self.description.text(),
+            'file': open(os.path.abspath(os.path.join(__file__, "../../../data")), 'rb')
         }
-        r = requests.post(url, verify=False, files=files, data=data)
+        try:
+            async with self.session.post(upload_measurement_url, data=data) as r:
+                pass
+        except Exception as e:
+            print(e)
+
+    @asyncClose
+    async def closeEvent(self, event):
+        await self.session.close()

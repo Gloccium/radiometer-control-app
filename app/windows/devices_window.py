@@ -1,12 +1,14 @@
+import asyncio
 import json
-
-import requests
+import aiohttp as aiohttp
 from PyQt5.QtWidgets import QWidget, QPushButton, QLineEdit
+from qasync import asyncSlot, asyncClose
 
 
 class DevicesWindow(QWidget):
     def __init__(self, settings_window, sending_window):
         super().__init__()
+        self.session = aiohttp.ClientSession(loop=asyncio.get_event_loop())
         self.settings_window = settings_window
         self.sending_window = sending_window
         self.name = QLineEdit()
@@ -18,20 +20,30 @@ class DevicesWindow(QWidget):
         self.name.setPlaceholderText('Название')
         self.description.setPlaceholderText('Описание')
         self.send_button.clicked.connect(self.send)
-        self.send_button.clicked.connect(self.update)
 
-    def send(self):
-        url = f'https://{self.settings_window.server_address.text()}/add-device'
-        url = "https://localhost:7209/add-device"
+    @asyncSlot()
+    async def send(self):
+        add_device_url = f'https://{self.settings_window.server_address.text()}/add-device'
+        add_device_url = "https://localhost:7209/add-device"
         data = {
             "name": self.name.text(),
             "description": self.description.text(),
         }
-        r = requests.post(url, verify=False, data=data)
+        try:
+            async with self.session.post(add_device_url, data=data) as r:
+                pass
+        except Exception as e:
+            print(e)
 
-    def update(self):
-        url = f'https://{self.settings_window.server_address.text()}/devices'
-        url = "https://localhost:7209/devices"
-        r = requests.get(url, verify=False)
-        self.sending_window.devices = json.loads(r.content)
-        self.sending_window.update()
+        devices_url = f'https://{self.settings_window.server_address.text()}/devices'
+        devices_url = "https://localhost:7209/devices"
+        try:
+            async with self.session.get(devices_url) as r:
+                self.sending_window.devices = json.loads(await r.read())
+                self.sending_window.update()
+        except Exception as e:
+            print(e)
+
+    @asyncClose
+    async def closeEvent(self, event):
+        await self.session.close()
