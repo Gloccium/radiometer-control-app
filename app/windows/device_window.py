@@ -1,22 +1,28 @@
 import asyncio
 import json
 import aiohttp as aiohttp
-from PyQt5.QtWidgets import QWidget, QPushButton, QLineEdit
+from PyQt5.QtWidgets import QWidget, QPushButton, QLineEdit, QVBoxLayout
 from qasync import asyncSlot, asyncClose
 
 
-class DevicesWindow(QWidget):
+class DeviceWindow(QWidget):
     def __init__(self, settings_window, sending_window):
         super().__init__()
+        self.setFixedSize(800, 600)
         self.session = aiohttp.ClientSession(loop=asyncio.get_event_loop())
         self.settings_window = settings_window
         self.sending_window = sending_window
-        self.name = QLineEdit()
-        self.description = QLineEdit()
+        self.layout = QVBoxLayout(self)
+        self.name = QLineEdit(self)
+        self.description = QLineEdit(self)
         self.send_button = QPushButton('Добавить', self)
         self.configure_elements()
 
     def configure_elements(self):
+        self.layout.addWidget(self.name)
+        self.layout.addWidget(self.description)
+        self.layout.addWidget(self.send_button)
+        self.layout.addStretch()
         self.name.setPlaceholderText('Название')
         self.description.setPlaceholderText('Описание')
         self.send_button.clicked.connect(self.send)

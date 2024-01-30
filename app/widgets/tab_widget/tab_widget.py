@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QWidget, QTabWidget, QVBoxLayout, QGridLayout
 
-from app.windows.devices_window import DevicesWindow
+from app.windows.device_window import DeviceWindow
 from app.windows.graph_window import GraphWindow
 from app.windows.sending_window import SendingWindow
 from app.windows.settings_window import SettingsWindow
@@ -15,18 +15,15 @@ class TabWidget(QWidget):
         self.graph_tab = QWidget()
         self.sending_tab = QWidget()
         self.settings_tab = QWidget()
-        self.devices_tab = QWidget()
         self.tabs.resize(1600, 1200)
 
         self.graph_window = GraphWindow()
         self.settings_window = SettingsWindow(self.graph_window)
         self.sending_window = SendingWindow(self.settings_window)
-        self.devices_window = DevicesWindow(self.settings_window, self.sending_window)
 
         self.tabs.addTab(self.graph_tab, "Graph")
         self.tabs.addTab(self.sending_tab, "Sending")
         self.tabs.addTab(self.settings_tab, "Settings")
-        self.tabs.addTab(self.devices_tab, "Devices")
 
         self.graph_tab.layout = QGridLayout(self)
         self.graph_tab.layout.addWidget(self.graph_window.plot)
@@ -36,13 +33,12 @@ class TabWidget(QWidget):
         self.graph_tab.setLayout(self.graph_tab.layout)
 
         self.sending_tab.layout = QVBoxLayout(self)
-        self.sending_tab.layout.addWidget(self.sending_window.surname)
-        self.sending_tab.layout.addWidget(self.sending_window.name)
-        self.sending_tab.layout.addWidget(self.sending_window.patronymic)
         self.sending_tab.layout.addWidget(self.sending_window.date)
         self.sending_tab.layout.addWidget(self.sending_window.time)
         self.sending_tab.layout.addWidget(self.sending_window.patient)
+        self.sending_tab.layout.addWidget(self.sending_window.add_patient_button)
         self.sending_tab.layout.addWidget(self.sending_window.device)
+        self.sending_tab.layout.addWidget(self.sending_window.add_device_button)
         self.sending_tab.layout.addWidget(self.sending_window.description)
         self.sending_tab.layout.addWidget(self.sending_window.send_button)
         self.sending_tab.layout.addStretch()
@@ -57,13 +53,6 @@ class TabWidget(QWidget):
         self.settings_tab.layout.addWidget(self.settings_window.update_port_button)
         self.settings_tab.layout.addStretch()
         self.settings_tab.setLayout(self.settings_tab.layout)
-
-        self.devices_tab.layout = QVBoxLayout(self)
-        self.devices_tab.layout.addWidget(self.devices_window.name)
-        self.devices_tab.layout.addWidget(self.devices_window.description)
-        self.devices_tab.layout.addWidget(self.devices_window.send_button)
-        self.devices_tab.layout.addStretch()
-        self.devices_tab.setLayout(self.devices_tab.layout)
 
         self.layout.addWidget(self.tabs)
         self.setLayout(self.layout)
