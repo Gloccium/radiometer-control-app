@@ -74,10 +74,12 @@ class PatientWindow(QWidget):
         try:
             async with self.session.get(patients_url, timeout=3) as r:
                 self.sending_window.patients = json.loads(await r.read())
-                self.sending_window.update()
         except Exception as e:
             show_error(QMessageBox.Critical, "Ошибка сети", "Неизвестная ошибка сети")
             print(e)
+            return
+
+        self.sending_window.filter_patient_list()
 
     @asyncClose
     async def closeEvent(self, event):
