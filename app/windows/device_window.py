@@ -1,8 +1,10 @@
 import asyncio
 import json
 import aiohttp as aiohttp
-from PyQt5.QtWidgets import QWidget, QPushButton, QLineEdit, QVBoxLayout
+from PyQt5.QtWidgets import QWidget, QPushButton, QLineEdit, QVBoxLayout, QMessageBox
 from qasync import asyncSlot, asyncClose
+
+from app.helpers.error_message import show_error
 
 
 class DeviceWindow(QWidget):
@@ -29,6 +31,10 @@ class DeviceWindow(QWidget):
 
     @asyncSlot()
     async def send(self):
+        if self.name.text() == '':
+            show_error(QMessageBox.Warning, "Неправильно заполенена форма", "Название должно быть заполнено")
+            return
+
         add_device_url = f'https://{self.settings_window.server_address.text()}/add-device'
         add_device_url = "https://localhost:7209/add-device"
         data = {
@@ -36,18 +42,21 @@ class DeviceWindow(QWidget):
             "description": self.description.text(),
         }
         try:
-            async with self.session.post(add_device_url, data=data) as r:
+            async with self.session.post(add_device_url, data=data, timeout=3) as r:
                 pass
         except Exception as e:
+            show_error(QMessageBox.Critical, "Ошибка сети", "Неизвестная ошибка сети")
             print(e)
+            return
 
         devices_url = f'https://{self.settings_window.server_address.text()}/devices'
         devices_url = "https://localhost:7209/devices"
         try:
-            async with self.session.get(devices_url) as r:
+            async with self.session.get(devices_url, timeout=3) as r:
                 self.sending_window.devices = json.loads(await r.read())
                 self.sending_window.update()
         except Exception as e:
+            show_error(QMessageBox.Critical, "Ошибка сети", "Неизвестная ошибка сети")
             print(e)
 
     @asyncClose

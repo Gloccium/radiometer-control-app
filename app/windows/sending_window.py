@@ -2,6 +2,7 @@ import asyncio
 import os
 import aiohttp
 from PyQt5 import QtWidgets
+from PyQt5.QtCore import QDate
 from PyQt5.QtWidgets import QWidget, QPushButton, QLineEdit, QTimeEdit, QDateEdit, QComboBox
 from qasync import asyncSlot, asyncClose
 
@@ -33,6 +34,7 @@ class SendingWindow(QWidget):
     def configure_elements(self):
         self.device.setPlaceholderText('Устройство')
         self.description.setPlaceholderText('Описание')
+        self.date.setDate(QDate.currentDate())
         self.device.setEditable(True)
         self.device.completer().setCompletionMode(QtWidgets.QCompleter.CompletionMode.PopupCompletion)
         self.patient.setEditable(True)

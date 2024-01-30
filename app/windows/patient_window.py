@@ -1,8 +1,13 @@
 import asyncio
 import json
+
 import aiohttp as aiohttp
-from PyQt5.QtWidgets import QWidget, QPushButton, QLineEdit, QVBoxLayout, QDateEdit, QComboBox
+from PyQt5.QtCore import QDate
+from PyQt5.QtWidgets import QWidget, QPushButton, QLineEdit, QVBoxLayout, QDateEdit, QComboBox, QMessageBox
+from aiohttp import ClientTimeout
 from qasync import asyncSlot, asyncClose
+
+from app.helpers.error_message import show_error
 
 
 class PatientWindow(QWidget):
@@ -35,12 +40,17 @@ class PatientWindow(QWidget):
         self.surname.setPlaceholderText('Фамилия')
         self.patronymic.setPlaceholderText('Отчество')
         self.notes.setPlaceholderText('Заметки')
+        self.birth_date.setDate(QDate.currentDate())
         self.sex.insertItem(0, 'М')
         self.sex.insertItem(1, 'Ж')
         self.send_button.clicked.connect(self.send)
 
     @asyncSlot()
     async def send(self):
+        if self.name.text() == '' or self.surname.text() == '' or self.birth_date.date() == QDate.currentDate():
+            show_error(QMessageBox.Warning, "Неправильно заполенена форма", "Имя, фамилия и дата рождения должны быть заполнены")
+            return
+
         add_patient_url = f'https://{self.settings_window.server_address.text()}/add-patient'
         add_patient_url = "https://localhost:7209/add-patient"
         data = {
@@ -52,18 +62,21 @@ class PatientWindow(QWidget):
             "notes": self.notes.text()
         }
         try:
-            async with self.session.post(add_patient_url, data=data) as r:
+            async with self.session.post(add_patient_url, data=data, timeout=3) as r:
                 pass
         except Exception as e:
+            show_error(QMessageBox.Critical, "Ошибка сети", "Неизвестная ошибка сети")
             print(e)
+            return
 
         patients_url = f'https://{self.settings_window.server_address.text()}/patients'
         patients_url = "https://localhost:7209/patients"
         try:
-            async with self.session.get(patients_url) as r:
+            async with self.session.get(patients_url, timeout=3) as r:
                 self.sending_window.patients = json.loads(await r.read())
                 self.sending_window.update()
         except Exception as e:
+            show_error(QMessageBox.Critical, "Ошибка сети", "Неизвестная ошибка сети")
             print(e)
 
     @asyncClose
