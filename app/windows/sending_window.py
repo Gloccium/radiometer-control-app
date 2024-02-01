@@ -25,6 +25,7 @@ class SendingWindow(QWidget):
 
         self.is_authentificated = False
         self.token = ''
+        self.user_id = None
 
         self.devices = []
         self.filtered_devices = []
@@ -157,21 +158,26 @@ class SendingWindow(QWidget):
 
     @asyncSlot()
     async def send_measurement(self):
-        upload_measurement_url = f'https://{self.settings_window.server_address.text()}/upload-measurement'
-        upload_measurement_url = "https://localhost:7209/upload-measurement"
+        if self.selected_device is None or self.selected_patient is None or self.user_id is None:
+            show_error(QMessageBox.Warning, "Неправильно заполенена форма", "Должны быть выбраны пациент и устройство")
+            return
+
+        add_measurement_url = f'https://{self.settings_window.server_address.text()}/add-measurement'
+        add_measurement_url = "https://localhost:7209/add-measurement"
+        headers = {'Token': self.token}
         data = {
-            "surname": self.surname.text(),
-            "name": self.name.text(),
-            "patronymic": self.patronymic.text(),
             "time": f'{self.date.dateTime().toString("yyyy-MM-dd")} {self.time.time().toString("hh:mm:ss")}',
-            "patient": self.patient.text(),
-            "device": self.device.currentText(),
+            'file': open(os.path.abspath(os.path.join(__file__, "../../../data")), 'rb'),
             "description": self.description.text(),
-            'file': open(os.path.abspath(os.path.join(__file__, "../../../data")), 'rb')
+            "userId": '2',
+            "patientId": str(self.filtered_patients[self.selected_patient]["Id"]),
+            "deviceId": str(self.filtered_devices[self.selected_device]["Id"]),
         }
         try:
-            async with self.session.post(upload_measurement_url, data=data) as r:
-                pass
+            async with self.session.post(add_measurement_url, headers=headers, data=data) as r:
+                if r.status != 200:
+                    show_error(QMessageBox.Critical, "Ошибка сети", "Неизвестная ошибка сети")
+                    return
         except Exception as e:
             print(e)
             return
@@ -193,12 +199,15 @@ class SendingWindow(QWidget):
                 if r.status != 200:
                     show_error(QMessageBox.Critical, "Ошибка сети", "Неизвестная ошибка сети")
                     return
-                self.token = str(await r.read(), 'utf-8')
+                data = await r.read()
         except Exception as e:
             print(e)
             return
 
-        if self.token != '':
+        authorization_data = json.loads(data)
+        if authorization_data["token"] != '':
+            self.token = authorization_data["token"]
+            self.user_id = authorization_data["userId"]
             self.is_authentificated = True
             self.set_visibility()
             await self.update_devices()
