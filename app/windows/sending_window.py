@@ -201,6 +201,7 @@ class SendingWindow(QWidget):
                     return
                 data = await r.read()
         except Exception as e:
+            show_error(QMessageBox.Critical, "Ошибка сети", "Неизвестная ошибка сети")
             print(e)
             return
 
