@@ -53,6 +53,7 @@ class PatientWindow(QWidget):
 
         add_patient_url = f'https://{self.settings_window.server_address.text()}/add-patient'
         add_patient_url = "https://localhost:7209/add-patient"
+        headers = {'Token': self.sending_window.token}
         data = {
             "name": self.name.text(),
             "surname": self.surname.text(),
@@ -62,24 +63,16 @@ class PatientWindow(QWidget):
             "notes": self.notes.text()
         }
         try:
-            async with self.session.post(add_patient_url, data=data, timeout=3) as r:
-                pass
+            async with self.session.post(add_patient_url, headers=headers, data=data, timeout=3) as r:
+                if r.status != 200:
+                    show_error(QMessageBox.Critical, "Ошибка сети", "Неизвестная ошибка сети")
+                    return
         except Exception as e:
             show_error(QMessageBox.Critical, "Ошибка сети", "Неизвестная ошибка сети")
             print(e)
             return
 
-        patients_url = f'https://{self.settings_window.server_address.text()}/patients'
-        patients_url = "https://localhost:7209/patients"
-        try:
-            async with self.session.get(patients_url, timeout=3) as r:
-                self.sending_window.patients = json.loads(await r.read())
-        except Exception as e:
-            show_error(QMessageBox.Critical, "Ошибка сети", "Неизвестная ошибка сети")
-            print(e)
-            return
-
-        self.sending_window.filter_patient_list()
+        self.sending_window.update_patients()
 
     @asyncClose
     async def closeEvent(self, event):

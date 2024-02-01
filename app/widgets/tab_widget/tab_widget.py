@@ -33,6 +33,9 @@ class TabWidget(QWidget):
         self.graph_tab.setLayout(self.graph_tab.layout)
 
         self.sending_tab.layout = QVBoxLayout(self)
+        self.sending_tab.layout.addWidget(self.sending_window.login)
+        self.sending_tab.layout.addWidget(self.sending_window.password)
+        self.sending_tab.layout.addWidget(self.sending_window.login_button)
         self.sending_tab.layout.addWidget(self.sending_window.date)
         self.sending_tab.layout.addWidget(self.sending_window.time)
         self.sending_tab.layout.addWidget(self.sending_window.patient)
@@ -42,7 +45,7 @@ class TabWidget(QWidget):
         self.sending_tab.layout.addWidget(self.sending_window.device_list)
         self.sending_tab.layout.addWidget(self.sending_window.add_device_button)
         self.sending_tab.layout.addWidget(self.sending_window.description)
-        self.sending_tab.layout.addWidget(self.sending_window.send_button)
+        self.sending_tab.layout.addWidget(self.sending_window.send_measurement_button)
         self.sending_tab.layout.addStretch()
         self.sending_tab.setLayout(self.sending_tab.layout)
 

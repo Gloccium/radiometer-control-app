@@ -37,29 +37,22 @@ class DeviceWindow(QWidget):
 
         add_device_url = f'https://{self.settings_window.server_address.text()}/add-device'
         add_device_url = "https://localhost:7209/add-device"
+        headers = {'Token': self.sending_window.token}
         data = {
             "name": self.name.text(),
             "description": self.description.text(),
         }
         try:
-            async with self.session.post(add_device_url, data=data, timeout=3) as r:
-                pass
+            async with self.session.post(add_device_url, headers=headers, data=data, timeout=3) as r:
+                if r.status != 200:
+                    show_error(QMessageBox.Critical, "Ошибка сети", "Неизвестная ошибка сети")
+                    return
         except Exception as e:
             show_error(QMessageBox.Critical, "Ошибка сети", "Неизвестная ошибка сети")
             print(e)
             return
 
-        devices_url = f'https://{self.settings_window.server_address.text()}/devices'
-        devices_url = "https://localhost:7209/devices"
-        try:
-            async with self.session.get(devices_url, timeout=3) as r:
-                self.sending_window.devices = json.loads(await r.read())
-        except Exception as e:
-            show_error(QMessageBox.Critical, "Ошибка сети", "Неизвестная ошибка сети")
-            print(e)
-            return
-
-        self.sending_window.filter_device_list()
+        self.sending_window.update_devices()
 
     @asyncClose
     async def closeEvent(self, event):
