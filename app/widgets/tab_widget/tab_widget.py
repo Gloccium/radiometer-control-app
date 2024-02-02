@@ -1,6 +1,5 @@
 from PyQt5.QtWidgets import QWidget, QTabWidget, QVBoxLayout, QGridLayout
 
-from app.windows.device_window import DeviceWindow
 from app.windows.graph_window import GraphWindow
 from app.windows.sending_window import SendingWindow
 from app.windows.settings_window import SettingsWindow
@@ -18,7 +17,7 @@ class TabWidget(QWidget):
         self.tabs.resize(1600, 1200)
 
         self.graph_window = GraphWindow()
-        self.settings_window = SettingsWindow(self.graph_window)
+        self.settings_window = SettingsWindow()
         self.sending_window = SendingWindow(self.settings_window)
 
         self.tabs.addTab(self.graph_tab, "Graph")
@@ -27,6 +26,8 @@ class TabWidget(QWidget):
 
         self.graph_tab.layout = QGridLayout(self)
         self.graph_tab.layout.addWidget(self.graph_window.plot)
+        self.graph_tab.layout.addWidget(self.graph_window.port_list)
+        self.graph_tab.layout.addWidget(self.graph_window.update_port_list_button)
         self.graph_tab.layout.addWidget(self.graph_window.toggle_channels_button)
         self.graph_tab.layout.addWidget(self.graph_window.start_button)
         self.graph_tab.layout.addWidget(self.graph_window.finish_button)
@@ -52,10 +53,6 @@ class TabWidget(QWidget):
         self.settings_tab.layout = QVBoxLayout(self)
         self.settings_tab.layout.addWidget(self.settings_window.server_label)
         self.settings_tab.layout.addWidget(self.settings_window.server_address)
-        self.settings_tab.layout.addStretch()
-        self.settings_tab.layout.addWidget(self.settings_window.ports_label)
-        [self.settings_tab.layout.addWidget(button) for button in self.settings_window.port_buttons]
-        self.settings_tab.layout.addWidget(self.settings_window.update_port_button)
         self.settings_tab.layout.addStretch()
         self.settings_tab.setLayout(self.settings_tab.layout)
 

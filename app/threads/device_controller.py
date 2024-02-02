@@ -3,7 +3,7 @@ from queue import Queue
 from PyQt5.QtCore import QObject
 from serial import Serial
 
-from app.helpers.reader import Reader
+from app.utils.reader import Reader
 
 
 class DeviceController(QObject):

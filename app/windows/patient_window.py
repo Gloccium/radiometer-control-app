@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import QWidget, QPushButton, QLineEdit, QVBoxLayout, QDateE
 from aiohttp import ClientTimeout
 from qasync import asyncSlot, asyncClose
 
-from app.helpers.error_message import show_error
+from app.utils.error_message import show_error
 
 
 class PatientWindow(QWidget):

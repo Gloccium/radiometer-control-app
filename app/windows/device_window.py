@@ -4,7 +4,7 @@ import aiohttp as aiohttp
 from PyQt5.QtWidgets import QWidget, QPushButton, QLineEdit, QVBoxLayout, QMessageBox
 from qasync import asyncSlot, asyncClose
 
-from app.helpers.error_message import show_error
+from app.utils.error_message import show_error
 
 
 class DeviceWindow(QWidget):

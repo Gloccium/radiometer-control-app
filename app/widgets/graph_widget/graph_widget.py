@@ -42,7 +42,7 @@ class GraphWidget(FigureCanvas):
         self.package_count = 0
 
         self.is_channels_visible = True
-        self.figure = plt.figure(figsize=(21, 9))
+        self.figure = plt.figure(figsize=(21, 7))
         self.double_gs = gridspec.GridSpec(2, 1, height_ratios=[1, 1])
         self.single_gs = gridspec.GridSpec(2, 1, height_ratios=[1000, 1])
         self.delta_ax = self.figure.add_subplot(self.double_gs[0])

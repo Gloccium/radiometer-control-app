@@ -9,8 +9,8 @@ from PyQt5.QtWidgets import QWidget, QPushButton, QLineEdit, QTimeEdit, QDateEdi
     QMessageBox
 from qasync import asyncSlot, asyncClose
 
-from app.helpers.error_message import show_error
-from app.widgets.list_adapter_widget.list_adapter_widget import ListAdapter
+from app.utils.error_message import show_error
+from app.widgets.list_adapter_widget.double_list_adapter_widget import DoubleListAdapter
 from app.windows.device_window import DeviceWindow
 from app.windows.patient_window import PatientWindow
 
@@ -135,7 +135,7 @@ class SendingWindow(QWidget):
     def update_device_list(self):
         self.device_list.clear()
         for device in self.filtered_devices:
-            list_adapter = ListAdapter()
+            list_adapter = DoubleListAdapter()
             list_adapter.set_name(device["Name"])
             list_adapter.set_description(device["Description"])
 
@@ -147,7 +147,7 @@ class SendingWindow(QWidget):
     def update_patient_list(self):
         self.patient_list.clear()
         for patient in self.filtered_patients:
-            list_adapter = ListAdapter()
+            list_adapter = DoubleListAdapter()
             list_adapter.set_name(f'{patient["Name"]} {patient["Surname"]} {patient["Patronymic"]}')
             list_adapter.set_description(patient["Notes"])
 
