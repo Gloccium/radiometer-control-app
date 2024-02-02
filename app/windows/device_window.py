@@ -8,10 +8,11 @@ from app.utils.error_message import show_error
 
 
 class DeviceWindow(QWidget):
-    def __init__(self, settings_window, sending_window):
+    def __init__(self, graph_window, settings_window, sending_window):
         super().__init__()
         self.setFixedSize(800, 600)
         self.session = aiohttp.ClientSession(loop=asyncio.get_event_loop())
+        self.graph_window = graph_window
         self.settings_window = settings_window
         self.sending_window = sending_window
         self.layout = QVBoxLayout(self)
@@ -52,7 +53,7 @@ class DeviceWindow(QWidget):
             print(e)
             return
 
-        self.sending_window.update_devices()
+        self.graph_window.update_devices()
 
     @asyncClose
     async def closeEvent(self, event):

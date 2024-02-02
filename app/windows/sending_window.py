@@ -11,28 +11,25 @@ from qasync import asyncSlot, asyncClose
 
 from app.utils.error_message import show_error
 from app.widgets.list_adapter_widget.double_list_adapter_widget import DoubleListAdapter
-from app.windows.device_window import DeviceWindow
 from app.windows.patient_window import PatientWindow
 
 
 class SendingWindow(QWidget):
-    def __init__(self, settings_window):
+    def __init__(self):
         super().__init__()
         self.session = aiohttp.ClientSession(loop=asyncio.get_event_loop())
-        self.settings_window = settings_window
-        self.device_window = None
         self.patients_window = None
+
+        self.settings_window = None
+        self.graph_window = None
 
         self.is_authentificated = False
         self.token = ''
         self.user_id = None
 
-        self.devices = []
-        self.filtered_devices = []
         self.patients = []
         self.filtered_patients = []
-        self.selected_device = None
-        self.selected_patient = None
+        self.selected_patient_index = None
 
         self.login = QLineEdit()
         self.password = QLineEdit()
@@ -43,9 +40,6 @@ class SendingWindow(QWidget):
         self.patient = QLineEdit(self)
         self.patient_list = QListWidget()
         self.add_patient_button = QPushButton('Добавить пациента', self)
-        self.device = QLineEdit(self)
-        self.device_list = QListWidget()
-        self.add_device_button = QPushButton('Добавить устройство', self)
         self.send_measurement_button = QPushButton('Отправить', self)
         self.login_button = QPushButton('Войти', self)
 
@@ -58,16 +52,12 @@ class SendingWindow(QWidget):
         self.password.setEchoMode(QtWidgets.QLineEdit.Password)
         self.login_button.clicked.connect(self.login_action)
 
-        self.device.setPlaceholderText('Введите название или описание устройства')
         self.patient.setPlaceholderText('Введите ФИО или заметки о пациенте')
         self.description.setPlaceholderText('Описание')
         self.date.setDate(QDate.currentDate())
         self.send_measurement_button.clicked.connect(self.send_measurement)
-        self.add_device_button.clicked.connect(self.add_device)
         self.add_patient_button.clicked.connect(self.add_patient)
-        self.device.textChanged.connect(self.filter_device_list)
         self.patient.textChanged.connect(self.filter_patient_list)
-        self.device_list.clicked.connect(self.select_device)
         self.patient_list.clicked.connect(self.select_patient)
 
     def set_visibility(self):
@@ -78,9 +68,6 @@ class SendingWindow(QWidget):
 
             self.date.show()
             self.time.show()
-            self.device.show()
-            self.device_list.show()
-            self.add_device_button.show()
             self.patient.show()
             self.patient_list.show()
             self.add_patient_button.show()
@@ -93,36 +80,18 @@ class SendingWindow(QWidget):
 
             self.date.hide()
             self.time.hide()
-            self.device.hide()
-            self.device_list.hide()
-            self.add_device_button.hide()
             self.patient.hide()
             self.patient_list.hide()
             self.add_patient_button.hide()
             self.description.hide()
             self.send_measurement_button.hide()
 
-    def add_device(self):
-        self.device_window = DeviceWindow(self.settings_window, self)
-        self.device_window.show()
-
     def add_patient(self):
         self.patients_window = PatientWindow(self.settings_window, self)
         self.patients_window.show()
 
-    def select_device(self):
-        self.selected_device = self.device_list.currentRow()
-
     def select_patient(self):
-        self.selected_patient = self.patient_list.currentRow()
-
-    def filter_device_list(self):
-        self.filtered_devices = []
-        for device in self.devices:
-            if self.device.text().lower() in device["Name"].lower() \
-                    or self.device.text().lower() in device["Description"].lower():
-                self.filtered_devices.append(device)
-        self.update_device_list()
+        self.selected_patient_index = self.patient_list.currentRow()
 
     def filter_patient_list(self):
         self.filtered_patients = []
@@ -131,18 +100,6 @@ class SendingWindow(QWidget):
                     or self.patient.text().lower() in patient["Notes"].lower():
                 self.filtered_patients.append(patient)
         self.update_patient_list()
-
-    def update_device_list(self):
-        self.device_list.clear()
-        for device in self.filtered_devices:
-            list_adapter = DoubleListAdapter()
-            list_adapter.set_name(device["Name"])
-            list_adapter.set_description(device["Description"])
-
-            list_adapter_item = QListWidgetItem()
-            list_adapter_item.setSizeHint(list_adapter.sizeHint())
-            self.device_list.addItem(list_adapter_item)
-            self.device_list.setItemWidget(list_adapter_item, list_adapter)
 
     def update_patient_list(self):
         self.patient_list.clear()
@@ -158,7 +115,7 @@ class SendingWindow(QWidget):
 
     @asyncSlot()
     async def send_measurement(self):
-        if self.selected_device is None or self.selected_patient is None or self.user_id is None:
+        if self.graph_window.selected_device is None or self.selected_patient_index is None or self.user_id is None:
             show_error(QMessageBox.Warning, "Неправильно заполенена форма", "Должны быть выбраны пациент и устройство")
             return
 
@@ -169,12 +126,12 @@ class SendingWindow(QWidget):
             "time": f'{self.date.dateTime().toString("yyyy-MM-dd")} {self.time.time().toString("hh:mm:ss")}',
             'file': open(os.path.abspath(os.path.join(__file__, "../../../data")), 'rb'),
             "description": self.description.text(),
-            "userId": '2',
-            "patientId": str(self.filtered_patients[self.selected_patient]["Id"]),
-            "deviceId": str(self.filtered_devices[self.selected_device]["Id"]),
+            "userId": str(self.user_id),
+            "patientId": str(self.filtered_patients[self.selected_patient_index]["Id"]),
+            "deviceId": str(self.graph_window.selected_device),
         }
         try:
-            async with self.session.post(add_measurement_url, headers=headers, data=data) as r:
+            async with self.session.post(add_measurement_url, headers=headers, data=data, timeout=3) as r:
                 if r.status != 200:
                     show_error(QMessageBox.Critical, "Ошибка сети", "Неизвестная ошибка сети")
                     return
@@ -211,27 +168,11 @@ class SendingWindow(QWidget):
             self.user_id = authorization_data["userId"]
             self.is_authentificated = True
             self.set_visibility()
-            await self.update_devices()
+            self.graph_window.set_visibility()
+            self.graph_window.calibration_data = None
+            await self.graph_window.update_devices()
+            await self.graph_window.update_calibrations()
             await self.update_patients()
-
-    @asyncSlot()
-    async def update_devices(self):
-        devices_url = f'https://{self.settings_window.server_address.text()}/devices'
-        devices_url = "https://localhost:7209/devices"
-        headers = {'Token': self.token}
-        try:
-            async with self.session.get(devices_url, headers=headers, timeout=3) as r:
-                if r.status != 200:
-                    show_error(QMessageBox.Critical, "Ошибка сети", "Неизвестная ошибка сети")
-                    return
-                data = await r.read()
-        except Exception as e:
-            show_error(QMessageBox.Critical, "Ошибка сети", "Неизвестная ошибка сети")
-            print(e)
-            return
-
-        self.devices = json.loads(data)
-        self.filter_device_list()
 
     @asyncSlot()
     async def update_patients(self):

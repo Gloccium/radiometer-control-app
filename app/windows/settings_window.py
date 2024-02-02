@@ -11,7 +11,7 @@ class SettingsWindow(QWidget):
         self.configure_elements()
 
     def configure_elements(self) -> None:
-        self.server_label.setText('Server address')
+        self.server_label.setText('Адрес сервера')
         self.server_label.setStyleSheet("QLabel{font-size: 14pt;}")
 
         self.server_address.setMaximumWidth(self.element_width)

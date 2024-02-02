@@ -16,16 +16,27 @@ class TabWidget(QWidget):
         self.settings_tab = QWidget()
         self.tabs.resize(1600, 1200)
 
-        self.graph_window = GraphWindow()
         self.settings_window = SettingsWindow()
-        self.sending_window = SendingWindow(self.settings_window)
+        self.graph_window = GraphWindow()
+        self.sending_window = SendingWindow()
 
-        self.tabs.addTab(self.graph_tab, "Graph")
-        self.tabs.addTab(self.sending_tab, "Sending")
-        self.tabs.addTab(self.settings_tab, "Settings")
+        self.graph_window.settings_window = self.settings_window
+        self.graph_window.sending_window = self.sending_window
+
+        self.sending_window.settings_window = self.settings_window
+        self.sending_window.graph_window = self.graph_window
+
+        self.tabs.addTab(self.graph_tab, "График")
+        self.tabs.addTab(self.sending_tab, "Отправить исследование")
+        self.tabs.addTab(self.settings_tab, "Настройки")
 
         self.graph_tab.layout = QGridLayout(self)
         self.graph_tab.layout.addWidget(self.graph_window.plot)
+        self.graph_tab.layout.addWidget(self.graph_window.filename)
+        self.graph_tab.layout.addWidget(self.graph_window.select_local_calibration_button)
+        self.graph_tab.layout.addWidget(self.graph_window.select_device_button)
+        self.graph_tab.layout.addWidget(self.graph_window.add_device_button)
+        self.graph_tab.layout.addWidget(self.graph_window.add_calibration_button)
         self.graph_tab.layout.addWidget(self.graph_window.port_list)
         self.graph_tab.layout.addWidget(self.graph_window.update_port_list_button)
         self.graph_tab.layout.addWidget(self.graph_window.toggle_channels_button)
@@ -42,9 +53,6 @@ class TabWidget(QWidget):
         self.sending_tab.layout.addWidget(self.sending_window.patient)
         self.sending_tab.layout.addWidget(self.sending_window.patient_list)
         self.sending_tab.layout.addWidget(self.sending_window.add_patient_button)
-        self.sending_tab.layout.addWidget(self.sending_window.device)
-        self.sending_tab.layout.addWidget(self.sending_window.device_list)
-        self.sending_tab.layout.addWidget(self.sending_window.add_device_button)
         self.sending_tab.layout.addWidget(self.sending_window.description)
         self.sending_tab.layout.addWidget(self.sending_window.send_measurement_button)
         self.sending_tab.layout.addStretch()
