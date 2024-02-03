@@ -48,9 +48,9 @@ class GraphWidget(FigureCanvas):
         self.single_gs = gridspec.GridSpec(2, 1, height_ratios=[1000, 1])
         self.delta_ax = self.figure.add_subplot(self.double_gs[0])
         self.channels_ax = self.figure.add_subplot(self.double_gs[1])
-        self.delta_ax.set_title("Дельта")
+        self.delta_ax.set_title("Температура")
         self.channels_ax.set_title("Каналы")
-        plt.subplots_adjust(left=0.02, right=0.98)
+        plt.subplots_adjust(left=0.03, right=0.98)
         self.delta_lines, = self.delta_ax.plot([], [], 'r')
         self.channel_a_lines, = self.channels_ax.plot([], [], 'g', label='Канал A')
         self.channel_b_lines, = self.channels_ax.plot([], [], 'b', label='Канал B')
@@ -333,22 +333,16 @@ class GraphWidget(FigureCanvas):
                 break
             count += 1
         if count == 0:
-            x_min = self.calibration_data[count]['x']
-            x_min_2 = self.calibration_data[count + 1]['x']
-            y_min = self.calibration_data[count]['y']
-            y_min_2 = self.calibration_data[count + 1]['y']
+            x_min, y_min = self.calibration_data[count]['x'], self.calibration_data[count]['y']
+            x_min_2, y_min_2 = self.calibration_data[count + 1]['x'], self.calibration_data[count + 1]['y']
             return y_min_2 + (delta - x_min_2) * (y_min - y_min_2) / (x_min - x_min_2)
         if count == len(self.calibration_data):
-            x_max = self.calibration_data[-1]['x']
-            x_max_2 = self.calibration_data[-2]['x']
-            y_max = self.calibration_data[-1]['y']
-            y_max_2 = self.calibration_data[-2]['y']
+            x_max, y_max = self.calibration_data[-1]['x'], self.calibration_data[-1]['y']
+            x_max_2, y_max_2 = self.calibration_data[-2]['x'], self.calibration_data[-2]['y']
             return y_max_2 + (delta - x_max_2) * (y_max - y_max_2) / (x_max - x_max_2)
         if 0 < count < len(self.calibration_data):
-            x_l = self.calibration_data[count - 1]['x']
-            x_r = self.calibration_data[count + 1]['x']
-            y_l = self.calibration_data[count - 1]['y']
-            y_r = self.calibration_data[count + 1]['y']
+            x_l, y_l = self.calibration_data[count - 1]['x'], self.calibration_data[count - 1]['y']
+            x_r, y_r = self.calibration_data[count + 1]['x'], self.calibration_data[count + 1]['y']
             return (delta - x_l) * (y_r - y_l) / (x_r - x_l) + y_l
 
     def update_figure(self) -> None:

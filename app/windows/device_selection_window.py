@@ -29,6 +29,9 @@ class DeviceSelectionWindow(QWidget):
         self.set_previous_device()
 
     def select_device(self):
+        if self.filtered_devices[self.device_list.currentRow()]["Id"] != self.graph_window.selected_device:
+            self.graph_window.selected_calibration = None
+            self.graph_window.calibration_data = None
         self.graph_window.selected_device = self.filtered_devices[self.device_list.currentRow()]["Id"]
         self.filter_calibration_list()
 
