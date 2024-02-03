@@ -14,8 +14,8 @@ from app.signals.my_signal import MySignal
 
 
 class GraphWidget(FigureCanvas):
-    def __init__(self, parent=None, device_controller=None):
-        self.parent = parent
+    def __init__(self, graph_window=None, device_controller=None):
+        self.parent = graph_window
 
         self.update_rate_ms = 200
         self.current_step_number = 0
@@ -26,6 +26,7 @@ class GraphWidget(FigureCanvas):
         self.time_label = [0.0]
         self.break_length = 3
         self.rescale_sensitivity = 2
+        self.calibration_data = []
 
         self.device_controller = device_controller
         self.channel_data = []
@@ -55,14 +56,14 @@ class GraphWidget(FigureCanvas):
         self.channel_b_lines, = self.channels_ax.plot([], [], 'b', label='Канал B')
         self.channels_ax.legend(loc="upper right")
 
-        self.delta_graph = GraphData(self.delta_ax, 100, self.delta_lines, None)
+        self.delta_graph = GraphData(self.delta_ax, 2, self.delta_lines, None)
         self.channels_graph = GraphData(self.channels_ax, 1000, self.channel_a_lines, self.channel_b_lines)
         self.graphs = [self.delta_graph, self.channels_graph]
 
         FigureCanvas.__init__(self, self.figure)
         FigureCanvas.setSizePolicy(self, QSizePolicy.Expanding, QSizePolicy.Expanding)
         FigureCanvas.updateGeometry(self)
-        self.setParent(parent)
+        self.setParent(graph_window)
 
         self.signal = MySignal()
         self.signal.sig_no_args.connect(self.update_figure)
@@ -85,7 +86,7 @@ class GraphWidget(FigureCanvas):
         self.channel_a_lines, = self.channels_ax.plot([], [], 'g')
         self.channel_b_lines, = self.channels_ax.plot([], [], 'b')
 
-        self.delta_graph = GraphData(self.delta_ax, 100, self.delta_lines, None)
+        self.delta_graph = GraphData(self.delta_ax, 2, self.delta_lines, None)
         self.channels_graph = GraphData(self.channels_ax, 1000, self.channel_a_lines, self.channel_b_lines)
         self.graphs = [self.delta_graph, self.channels_graph]
 
@@ -323,6 +324,33 @@ class GraphWidget(FigureCanvas):
 
         return delta[len(delta) - 1], channel_a[len(channel_a) - 1], channel_b[len(channel_b) - 1]
 
+    def calculate_calibrated_value(self, delta):
+        count = 0
+        for i in range(len(self.calibration_data)):
+            if self.calibration_data[i]['x'] == delta:
+                return self.calibration_data[i]['y']
+            if delta < self.calibration_data[i]['x']:
+                break
+            count += 1
+        if count == 0:
+            x_min = self.calibration_data[count]['x']
+            x_min_2 = self.calibration_data[count + 1]['x']
+            y_min = self.calibration_data[count]['y']
+            y_min_2 = self.calibration_data[count + 1]['y']
+            return y_min_2 + (delta - x_min_2) * (y_min - y_min_2) / (x_min - x_min_2)
+        if count == len(self.calibration_data):
+            x_max = self.calibration_data[-1]['x']
+            x_max_2 = self.calibration_data[-2]['x']
+            y_max = self.calibration_data[-1]['y']
+            y_max_2 = self.calibration_data[-2]['y']
+            return y_max_2 + (delta - x_max_2) * (y_max - y_max_2) / (x_max - x_max_2)
+        if 0 < count < len(self.calibration_data):
+            x_l = self.calibration_data[count - 1]['x']
+            x_r = self.calibration_data[count + 1]['x']
+            y_l = self.calibration_data[count - 1]['y']
+            y_r = self.calibration_data[count + 1]['y']
+            return (delta - x_l) * (y_r - y_l) / (x_r - x_l) + y_l
+
     def update_figure(self) -> None:
         self.get_packages()
         delta_value, channel_a_value, channel_b_value = self.get_value() or (None, None, None)
@@ -330,6 +358,7 @@ class GraphWidget(FigureCanvas):
         if delta_value is None or channel_a_value is None or channel_b_value is None:
             return
 
+        delta_value = self.calculate_calibrated_value(delta_value)
         self.current_step_number += 1
         self.add_points(delta_value, channel_a_value, channel_b_value)
         self.check_iteration()

@@ -164,6 +164,7 @@ class GraphWindow(QWidget):
             show_error(QMessageBox.Critical, "Ошибка подключения", "Невозможно подключиться к выбранному порту")
             print('Could not open port')
             return
+        self.plot.calibration_data = self.calibration_data["calibrationData"]
         self.device_thread.start()
         self.timer_thread.start()
         self.finish_button.setDisabled(False)
