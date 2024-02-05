@@ -50,6 +50,8 @@ class GraphWidget(FigureCanvas):
         self.channels_ax = self.figure.add_subplot(self.double_gs[1])
         self.delta_ax.set_title("Температура")
         self.channels_ax.set_title("Каналы")
+        self.delta_ax.grid()
+        self.channels_ax.grid()
         plt.subplots_adjust(left=0.03, right=0.98)
         self.delta_lines, = self.delta_ax.plot([], [], 'r')
         self.channel_a_lines, = self.channels_ax.plot([], [], 'g', label='Канал A')
