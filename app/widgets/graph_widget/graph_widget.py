@@ -88,6 +88,9 @@ class GraphWidget(FigureCanvas):
         self.channel_a_lines, = self.channels_ax.plot([], [], 'g')
         self.channel_b_lines, = self.channels_ax.plot([], [], 'b')
 
+        self.delta_ax.grid()
+        self.channels_ax.grid()
+
         self.delta_graph = GraphData(self.delta_ax, 2, self.delta_lines, None)
         self.channels_graph = GraphData(self.channels_ax, 1000, self.channel_a_lines, self.channel_b_lines)
         self.graphs = [self.delta_graph, self.channels_graph]

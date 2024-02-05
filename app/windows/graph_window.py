@@ -8,6 +8,7 @@ from PyQt5.QtWidgets import QWidget, QPushButton, QListWidget, QListWidgetItem, 
 from qasync import asyncSlot, asyncClose
 from serial import Serial, SerialException
 
+from app.utils.calibration_validation import validate_calibration
 from app.utils.error_message import show_error
 from app.threads.device_controller import DeviceController
 from app.threads.timer import Timer
@@ -107,9 +108,15 @@ class GraphWindow(QWidget):
             self,
             "Select a File"
         )
-        self.filename.setText(filename)
-        with open(filename, 'r', encoding='utf-8') as f:
-            self.calibration_data = json.loads(f.read())
+        if filename != '':
+            with open(filename, 'r', encoding='utf-8') as f:
+                data = f.read()
+                if validate_calibration(data):
+                    self.filename.setText(filename)
+                    self.calibration_data = json.loads(data)
+                else:
+                    self.filename.setText('')
+                    self.calibration_data = None
 
     @asyncSlot()
     async def update_devices(self):

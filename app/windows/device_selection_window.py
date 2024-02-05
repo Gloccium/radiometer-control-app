@@ -3,6 +3,7 @@ import json
 
 from PyQt5.QtWidgets import QWidget, QLineEdit, QVBoxLayout, QListWidget, QListWidgetItem
 
+from app.utils.calibration_validation import validate_calibration
 from app.widgets.list_adapter_widget.double_list_adapter_widget import DoubleListAdapter
 
 
@@ -36,8 +37,14 @@ class DeviceSelectionWindow(QWidget):
         self.filter_calibration_list()
 
     def select_calibration(self):
-        self.graph_window.selected_calibration = self.filtered_calibrations[self.calibration_list.currentRow()]["Id"]
-        self.graph_window.calibration_data = json.loads(base64.b64decode(self.filtered_calibrations[self.calibration_list.currentRow()]["Data"]))
+        data = base64.b64decode(self.filtered_calibrations[self.calibration_list.currentRow()]["Data"])
+        if validate_calibration(data):
+            self.graph_window.selected_calibration = self.filtered_calibrations[self.calibration_list.currentRow()]["Id"]
+            self.graph_window.calibration_data = json.loads(data)
+        else:
+            self.graph_window.selected_calibration = None
+            self.graph_window.calibration_data = None
+            self.calibration_list.setCurrentRow(-1)
 
     def filter_device_list(self):
         self.filtered_devices = []

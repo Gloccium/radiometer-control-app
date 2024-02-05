@@ -1,6 +1,4 @@
 import asyncio
-import io
-from io import StringIO
 
 import aiohttp as aiohttp
 from PyQt5.QtCore import QDate
@@ -8,6 +6,7 @@ from PyQt5.QtWidgets import QWidget, QPushButton, QLineEdit, QVBoxLayout, QMessa
     QListWidget, QListWidgetItem
 from qasync import asyncSlot, asyncClose
 
+from app.utils.calibration_validation import validate_calibration
 from app.utils.error_message import show_error
 from app.widgets.list_adapter_widget.double_list_adapter_widget import DoubleListAdapter
 
@@ -66,9 +65,15 @@ class CalibrationWindow(QWidget):
             self,
             "Select a File"
         )
-        self.filename.setText(filename)
-        with open(filename, 'rb') as f:
-            self.calibration_file = f.read()
+        if filename != '':
+            with open(filename, 'rb') as f:
+                data = f.read()
+                if validate_calibration(data):
+                    self.filename.setText(filename)
+                    self.calibration_file = data
+                else:
+                    self.filename.setText('')
+                    self.calibration_file = None
 
     @asyncSlot()
     async def send(self):
