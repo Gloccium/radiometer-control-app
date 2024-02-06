@@ -3,7 +3,7 @@ import aiohttp as aiohttp
 from PyQt5.QtWidgets import QWidget, QPushButton, QLineEdit, QVBoxLayout, QMessageBox
 from qasync import asyncSlot, asyncClose
 
-from app.utils.error_message import show_error
+from app.utils.error_messages import show_error, is_network_error
 
 
 class DeviceWindow(QWidget):
@@ -35,7 +35,7 @@ class DeviceWindow(QWidget):
             show_error(QMessageBox.Warning, "Неправильно заполенена форма", "Название должно быть заполнено")
             return
 
-        add_device_url = f'https://{self.settings_window.server_address.text()}/add-device'
+        add_device_url = f'https://{self.settings_window.server_address}/add-device'
         headers = {"Authorization": f'Bearer {self.sending_window.token}'}
         data = {
             "name": self.name.text(),
@@ -43,11 +43,10 @@ class DeviceWindow(QWidget):
         }
         try:
             async with self.session.post(add_device_url, headers=headers, data=data, timeout=3) as r:
-                if r.status != 200:
-                    show_error(QMessageBox.Critical, "Ошибка сети", "Неизвестная ошибка сети")
+                if is_network_error(r.status):
                     return
         except Exception as e:
-            show_error(QMessageBox.Critical, "Ошибка сети", "Неизвестная ошибка сети")
+            show_error(QMessageBox.Critical, "Ошибка соединения", "Не удалось установить соединение с сервером")
             print(e)
             return
 

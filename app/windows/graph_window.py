@@ -10,7 +10,7 @@ from qasync import asyncSlot, asyncClose
 from serial import Serial, SerialException
 
 from app.utils.calibration_validation import validate_calibration
-from app.utils.error_message import show_error
+from app.utils.error_messages import show_error, is_network_error
 from app.threads.device_controller import DeviceController
 from app.threads.timer import Timer
 from app.widgets.graph_widget.graph_widget import GraphWidget
@@ -126,12 +126,11 @@ class GraphWindow(QWidget):
         headers = {"Authorization": f'Bearer {self.sending_window.token}'}
         try:
             async with self.session.get(devices_url, headers=headers, timeout=3) as r:
-                if r.status != 200:
-                    show_error(QMessageBox.Critical, "Ошибка сети", "Неизвестная ошибка сети")
+                if is_network_error(r.status):
                     return
                 data = await r.read()
         except Exception as e:
-            show_error(QMessageBox.Critical, "Ошибка сети", "Неизвестная ошибка сети")
+            show_error(QMessageBox.Critical, "Ошибка соединения", "Не удалось установить соединение с сервером")
             print(e)
             return
 
@@ -143,13 +142,11 @@ class GraphWindow(QWidget):
         headers = {"Authorization": f'Bearer {self.sending_window.token}'}
         try:
             async with self.session.get(calibrations_url, headers=headers, timeout=3) as r:
-                if r.status != 200:
-                    print(r.status)
-                    show_error(QMessageBox.Critical, "Ошибка сети", "Неизвестная ошибка сети")
+                if is_network_error(r.status):
                     return
                 data = await r.read()
         except Exception as e:
-            show_error(QMessageBox.Critical, "Ошибка сети", "Неизвестная ошибка сети")
+            show_error(QMessageBox.Critical, "Ошибка соединения", "Не удалось установить соединение с сервером")
             print(e)
             return
 

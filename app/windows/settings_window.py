@@ -2,7 +2,7 @@ import os
 
 from PyQt5.QtWidgets import QWidget, QLineEdit, QPushButton, QFileDialog, QMessageBox
 
-from app.utils.error_message import show_error
+from app.utils.error_messages import show_error
 
 
 class SettingsWindow(QWidget):

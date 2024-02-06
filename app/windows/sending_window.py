@@ -9,7 +9,7 @@ from PyQt5.QtWidgets import QWidget, QPushButton, QLineEdit, QTimeEdit, QDateEdi
     QMessageBox
 from qasync import asyncSlot, asyncClose
 
-from app.utils.error_message import show_error
+from app.utils.error_messages import show_error, is_network_error
 from app.widgets.list_adapter_widget.double_list_adapter_widget import DoubleListAdapter
 from app.windows.patient_window import PatientWindow
 
@@ -131,10 +131,10 @@ class SendingWindow(QWidget):
         }
         try:
             async with self.session.post(add_measurement_url, headers=headers, data=data, timeout=3) as r:
-                if r.status != 200:
-                    show_error(QMessageBox.Critical, "Ошибка сети", "Неизвестная ошибка сети")
+                if is_network_error(r.status):
                     return
         except Exception as e:
+            show_error(QMessageBox.Critical, "Ошибка соединения", "Не удалось установить соединение с сервером")
             print(e)
             return
 
@@ -151,12 +151,11 @@ class SendingWindow(QWidget):
         }
         try:
             async with self.session.post(login_url, data=data, timeout=3) as r:
-                if r.status != 200:
-                    show_error(QMessageBox.Critical, "Ошибка сети", "Неизвестная ошибка сети")
+                if is_network_error(r.status):
                     return
                 data = await r.read()
         except Exception as e:
-            show_error(QMessageBox.Critical, "Ошибка сети", "Неизвестная ошибка сети")
+            show_error(QMessageBox.Critical, "Ошибка соединения", "Не удалось установить соединение с сервером")
             print(e)
             return
 
@@ -178,12 +177,11 @@ class SendingWindow(QWidget):
         headers = {"Authorization": f'Bearer {self.token}'}
         try:
             async with self.session.get(patients_url, headers=headers, timeout=3) as r:
-                if r.status != 200:
-                    show_error(QMessageBox.Critical, "Ошибка сети", "Неизвестная ошибка сети")
+                if is_network_error(r.status):
                     return
                 data = await r.read()
         except Exception as e:
-            show_error(QMessageBox.Critical, "Ошибка сети", "Неизвестная ошибка сети")
+            show_error(QMessageBox.Critical, "Ошибка соединения", "Не удалось установить соединение с сервером")
             print(e)
             return
 

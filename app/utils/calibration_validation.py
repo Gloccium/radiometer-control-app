@@ -3,7 +3,7 @@ import json
 from PyQt5.QtWidgets import QMessageBox
 from jsonschema import validate
 
-from app.utils.error_message import show_error
+from app.utils.error_messages import show_error
 
 schema = {
     "type": "object",

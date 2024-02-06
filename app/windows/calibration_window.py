@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import QWidget, QPushButton, QLineEdit, QVBoxLayout, QMessa
 from qasync import asyncSlot, asyncClose
 
 from app.utils.calibration_validation import validate_calibration
-from app.utils.error_message import show_error
+from app.utils.error_messages import show_error, is_network_error
 from app.widgets.list_adapter_widget.double_list_adapter_widget import DoubleListAdapter
 
 
@@ -93,12 +93,10 @@ class CalibrationWindow(QWidget):
         }
         try:
             async with self.session.post(add_calibration_url, headers=headers, data=data, timeout=3) as r:
-                if r.status != 200:
-                    print(r.status)
-                    show_error(QMessageBox.Critical, "Ошибка сети", "Неизвестная ошибка сети")
+                if is_network_error(r.status):
                     return
         except Exception as e:
-            show_error(QMessageBox.Critical, "Ошибка сети", "Неизвестная ошибка сети")
+            show_error(QMessageBox.Critical, "Ошибка соединения", "Не удалось установить соединение с сервером")
             print(e)
             return
 
