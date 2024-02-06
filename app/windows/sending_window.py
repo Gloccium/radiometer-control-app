@@ -104,7 +104,7 @@ class SendingWindow(QWidget):
     def update_patient_list(self):
         self.patient_list.clear()
         for patient in self.filtered_patients:
-            list_adapter = DoubleListAdapter()
+            list_adapter = DoubleListAdapter(name='ФИО', description='Заметки')
             list_adapter.set_name(f'{patient["Name"]} {patient["Surname"]} {patient["Patronymic"]}')
             list_adapter.set_description(patient["Notes"])
 

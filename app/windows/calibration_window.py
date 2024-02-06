@@ -51,7 +51,7 @@ class CalibrationWindow(QWidget):
     def update_device_list(self):
         self.device_list.clear()
         for device in self.filtered_devices:
-            list_adapter = DoubleListAdapter()
+            list_adapter = DoubleListAdapter(name='Название', description='Описание')
             list_adapter.set_name(device["Name"])
             list_adapter.set_description(device["Description"])
 

@@ -2,15 +2,19 @@ from PyQt5.QtWidgets import QVBoxLayout, QLabel, QWidget, QHBoxLayout
 
 
 class DoubleListAdapter(QWidget):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, name=None, description=None):
         super(DoubleListAdapter, self).__init__(parent)
 
         self.vBox = QVBoxLayout()
         self.name = QLabel()
+        self.name_label = QLabel(name)
+        self.vBox.addWidget(self.name_label)
         self.vBox.addWidget(self.name)
 
         self.vBoxSecond = QVBoxLayout()
         self.description = QLabel()
+        self.description_label = QLabel(description)
+        self.vBoxSecond.addWidget(self.description_label)
         self.vBoxSecond.addWidget(self.description)
 
         self.hBox = QHBoxLayout()
