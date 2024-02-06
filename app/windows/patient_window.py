@@ -1,10 +1,8 @@
 import asyncio
-import json
 
 import aiohttp as aiohttp
 from PyQt5.QtCore import QDate
 from PyQt5.QtWidgets import QWidget, QPushButton, QLineEdit, QVBoxLayout, QDateEdit, QComboBox, QMessageBox
-from aiohttp import ClientTimeout
 from qasync import asyncSlot, asyncClose
 
 from app.utils.error_message import show_error
@@ -52,7 +50,7 @@ class PatientWindow(QWidget):
             return
 
         add_patient_url = f'https://{self.settings_window.server_address}/add-patient'
-        headers = {'Token': self.sending_window.token}
+        headers = {"Authorization": f'Bearer {self.sending_window.token}'}
         data = {
             "name": self.name.text(),
             "surname": self.surname.text(),

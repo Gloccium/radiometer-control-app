@@ -1,5 +1,4 @@
 import asyncio
-import json
 import aiohttp as aiohttp
 from PyQt5.QtWidgets import QWidget, QPushButton, QLineEdit, QVBoxLayout, QMessageBox
 from qasync import asyncSlot, asyncClose
@@ -37,7 +36,7 @@ class DeviceWindow(QWidget):
             return
 
         add_device_url = f'https://{self.settings_window.server_address.text()}/add-device'
-        headers = {'Token': self.sending_window.token}
+        headers = {"Authorization": f'Bearer {self.sending_window.token}'}
         data = {
             "name": self.name.text(),
             "description": self.description.text(),

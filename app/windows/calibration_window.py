@@ -83,7 +83,7 @@ class CalibrationWindow(QWidget):
             return
 
         add_calibration_url = f'https://{self.settings_window.server_address}/add-calibration'
-        headers = {'Token': self.sending_window.token}
+        headers = {"Authorization": f'Bearer {self.sending_window.token}'}
         data = {
             "name": self.name.text(),
             "date": self.date.dateTime().toString("yyyy-MM-dd"),

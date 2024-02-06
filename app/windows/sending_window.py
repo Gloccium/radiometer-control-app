@@ -120,7 +120,7 @@ class SendingWindow(QWidget):
             return
 
         add_measurement_url = f'https://{self.settings_window.server_address}/add-measurement'
-        headers = {'Token': self.token}
+        headers = {"Authorization": f'Bearer {self.token}'}
         data = {
             "time": f'{self.date.dateTime().toString("yyyy-MM-dd")} {self.time.time().toString("hh:mm:ss")}',
             'file': open(os.path.abspath(os.path.join(__file__, "../../../data")), 'rb'),
@@ -161,9 +161,9 @@ class SendingWindow(QWidget):
             return
 
         authorization_data = json.loads(data)
-        if authorization_data["token"] != '':
-            self.token = authorization_data["token"]
-            self.user_id = authorization_data["userId"]
+        if authorization_data["value"]["access_token"] != '':
+            self.token = authorization_data["value"]["access_token"]
+            self.user_id = authorization_data["value"]["userId"]
             self.is_authentificated = True
             self.set_visibility()
             self.graph_window.set_visibility()
@@ -175,7 +175,7 @@ class SendingWindow(QWidget):
     @asyncSlot()
     async def update_patients(self):
         patients_url = f'https://{self.settings_window.server_address}/patients'
-        headers = {'Token': self.token}
+        headers = {"Authorization": f'Bearer {self.token}'}
         try:
             async with self.session.get(patients_url, headers=headers, timeout=3) as r:
                 if r.status != 200:

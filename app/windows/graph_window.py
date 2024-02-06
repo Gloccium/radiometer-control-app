@@ -123,7 +123,7 @@ class GraphWindow(QWidget):
     @asyncSlot()
     async def update_devices(self):
         devices_url = f'https://{self.settings_window.server_address}/devices'
-        headers = {'Token': self.sending_window.token}
+        headers = {"Authorization": f'Bearer {self.sending_window.token}'}
         try:
             async with self.session.get(devices_url, headers=headers, timeout=3) as r:
                 if r.status != 200:
@@ -140,7 +140,7 @@ class GraphWindow(QWidget):
     @asyncSlot()
     async def update_calibrations(self):
         calibrations_url = f'https://{self.settings_window.server_address}/calibrations'
-        headers = {'Token': self.sending_window.token}
+        headers = {"Authorization": f'Bearer {self.sending_window.token}'}
         try:
             async with self.session.get(calibrations_url, headers=headers, timeout=3) as r:
                 if r.status != 200:
