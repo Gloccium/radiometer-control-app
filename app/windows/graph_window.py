@@ -32,6 +32,7 @@ class GraphWindow(QWidget):
         self.toggle_channels_button = None
         self.finish_button = None
         self.data = []
+        self.record_filename = None
 
         self.port_list = QListWidget()
         self.update_port_list_button = None
@@ -177,7 +178,8 @@ class GraphWindow(QWidget):
 
     def write_data(self):
         now = datetime.now()
-        with open(f'{self.settings_window.records_directory_path}/Record {now.strftime("%d-%m-%Y %H-%M")}', 'wb') as f:
+        self.record_filename = f'Record {now.strftime("%d-%m-%Y %H-%M")}'
+        with open(f'{self.settings_window.records_directory_path}/{self.record_filename}', 'wb') as f:
             [f.write(s) for s in self.data]
 
     def finish(self):

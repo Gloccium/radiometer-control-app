@@ -1,6 +1,5 @@
 import asyncio
 import json
-import os
 
 import aiohttp
 from PyQt5 import QtWidgets
@@ -123,7 +122,7 @@ class SendingWindow(QWidget):
         headers = {"Authorization": f'Bearer {self.token}'}
         data = {
             "time": f'{self.date.dateTime().toString("yyyy-MM-dd")} {self.time.time().toString("hh:mm:ss")}',
-            'file': open(os.path.abspath(os.path.join(__file__, "../../../data")), 'rb'),
+            'file': open(f'{self.settings_window.records_directory_path}/{self.graph_window.record_filename}', 'rb'),
             "description": self.description.text(),
             "userId": str(self.user_id),
             "patientId": str(self.filtered_patients[self.selected_patient_index]["Id"]),
