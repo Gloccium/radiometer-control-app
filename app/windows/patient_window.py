@@ -51,8 +51,7 @@ class PatientWindow(QWidget):
             show_error(QMessageBox.Warning, "Неправильно заполенена форма", "Имя, фамилия и дата рождения должны быть заполнены")
             return
 
-        add_patient_url = f'https://{self.settings_window.server_address.text()}/add-patient'
-        add_patient_url = "https://localhost:7209/add-patient"
+        add_patient_url = f'https://{self.settings_window.server_address}/add-patient'
         headers = {'Token': self.sending_window.token}
         data = {
             "name": self.name.text(),

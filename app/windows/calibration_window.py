@@ -63,7 +63,8 @@ class CalibrationWindow(QWidget):
     def open_file_dialog(self):
         filename, ok = QFileDialog.getOpenFileName(
             self,
-            "Select a File"
+            "Select a File",
+            self.settings_window.calibration_directory_path
         )
         if filename != '':
             with open(filename, 'rb') as f:
@@ -81,8 +82,7 @@ class CalibrationWindow(QWidget):
             show_error(QMessageBox.Warning, "Неправильно заполенена форма", "Название и файл не выбраны")
             return
 
-        add_calibration_url = f'https://{self.settings_window.server_address.text()}/add-calibration'
-        add_calibration_url = "https://localhost:7209/add-calibration"
+        add_calibration_url = f'https://{self.settings_window.server_address}/add-calibration'
         headers = {'Token': self.sending_window.token}
         data = {
             "name": self.name.text(),

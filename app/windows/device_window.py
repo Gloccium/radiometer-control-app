@@ -37,7 +37,6 @@ class DeviceWindow(QWidget):
             return
 
         add_device_url = f'https://{self.settings_window.server_address.text()}/add-device'
-        add_device_url = "https://localhost:7209/add-device"
         headers = {'Token': self.sending_window.token}
         data = {
             "name": self.name.text(),

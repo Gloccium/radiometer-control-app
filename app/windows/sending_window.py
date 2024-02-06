@@ -119,8 +119,7 @@ class SendingWindow(QWidget):
             show_error(QMessageBox.Warning, "Неправильно заполенена форма", "Должны быть выбраны пациент и устройство")
             return
 
-        add_measurement_url = f'https://{self.settings_window.server_address.text()}/add-measurement'
-        add_measurement_url = "https://localhost:7209/add-measurement"
+        add_measurement_url = f'https://{self.settings_window.server_address}/add-measurement'
         headers = {'Token': self.token}
         data = {
             "time": f'{self.date.dateTime().toString("yyyy-MM-dd")} {self.time.time().toString("hh:mm:ss")}',
@@ -145,8 +144,7 @@ class SendingWindow(QWidget):
             show_error(QMessageBox.Warning, "Неправильно заполенена форма", "Логин и пароль должны быть заполнены")
             return
 
-        login_url = f'https://{self.settings_window.server_address.text()}/login'
-        login_url = "https://localhost:7209/login"
+        login_url = f'https://{self.settings_window.server_address}/login'
         data = {
             "login": self.login.text(),
             "password": self.password.text()
@@ -176,8 +174,7 @@ class SendingWindow(QWidget):
 
     @asyncSlot()
     async def update_patients(self):
-        patients_url = f'https://{self.settings_window.server_address.text()}/patients'
-        patients_url = "https://localhost:7209/patients"
+        patients_url = f'https://{self.settings_window.server_address}/patients'
         headers = {'Token': self.token}
         try:
             async with self.session.get(patients_url, headers=headers, timeout=3) as r:

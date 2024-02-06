@@ -59,8 +59,12 @@ class TabWidget(QWidget):
         self.sending_tab.setLayout(self.sending_tab.layout)
 
         self.settings_tab.layout = QVBoxLayout(self)
-        self.settings_tab.layout.addWidget(self.settings_window.server_label)
-        self.settings_tab.layout.addWidget(self.settings_window.server_address)
+        self.settings_tab.layout.addWidget(self.settings_window.server_address_input)
+        self.settings_tab.layout.addWidget(self.settings_window.records_directory)
+        self.settings_tab.layout.addWidget(self.settings_window.records_directory_button)
+        self.settings_tab.layout.addWidget(self.settings_window.calibration_directory)
+        self.settings_tab.layout.addWidget(self.settings_window.calibration_directory_button)
+        self.settings_tab.layout.addWidget(self.settings_window.save_button)
         self.settings_tab.layout.addStretch()
         self.settings_tab.setLayout(self.settings_tab.layout)
 

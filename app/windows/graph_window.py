@@ -1,5 +1,6 @@
 import asyncio
 import json
+from datetime import datetime
 
 import aiohttp
 import serial.tools.list_ports
@@ -106,7 +107,8 @@ class GraphWindow(QWidget):
     def select_local_calibration(self):
         filename, ok = QFileDialog.getOpenFileName(
             self,
-            "Select a File"
+            "Select a File",
+            self.settings_window.calibration_directory_path
         )
         if filename != '':
             with open(filename, 'r', encoding='utf-8') as f:
@@ -120,8 +122,7 @@ class GraphWindow(QWidget):
 
     @asyncSlot()
     async def update_devices(self):
-        devices_url = f'https://{self.settings_window.server_address.text()}/devices'
-        devices_url = "https://localhost:7209/devices"
+        devices_url = f'https://{self.settings_window.server_address}/devices'
         headers = {'Token': self.sending_window.token}
         try:
             async with self.session.get(devices_url, headers=headers, timeout=3) as r:
@@ -138,8 +139,7 @@ class GraphWindow(QWidget):
 
     @asyncSlot()
     async def update_calibrations(self):
-        calibrations_url = f'https://{self.settings_window.server_address.text()}/calibrations'
-        calibrations_url = "https://localhost:7209/calibrations"
+        calibrations_url = f'https://{self.settings_window.server_address}/calibrations'
         headers = {'Token': self.sending_window.token}
         try:
             async with self.session.get(calibrations_url, headers=headers, timeout=3) as r:
@@ -179,7 +179,8 @@ class GraphWindow(QWidget):
         self.start_button.setDisabled(True)
 
     def write_data(self):
-        with open('../data', 'wb') as f:
+        now = datetime.now()
+        with open(f'{self.settings_window.records_directory_path}/Record {now.strftime("%d-%m-%Y %H-%M")}', 'wb') as f:
             [f.write(s) for s in self.data]
 
     def finish(self):
