@@ -149,7 +149,7 @@ class SendingWindow(QWidget):
             "password": self.password.text()
         }
         try:
-            async with self.session.post(login_url, data=data, timeout=3) as r:
+            async with self.session.post(login_url, json=data, timeout=3) as r:
                 if is_network_error(r.status):
                     return
                 data = await r.read()

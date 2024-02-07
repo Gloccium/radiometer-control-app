@@ -60,7 +60,7 @@ class PatientWindow(QWidget):
             "notes": self.notes.text()
         }
         try:
-            async with self.session.post(add_patient_url, headers=headers, data=data, timeout=3) as r:
+            async with self.session.post(add_patient_url, headers=headers, json=data, timeout=3) as r:
                 if is_network_error(r.status):
                     return
         except Exception as e:
