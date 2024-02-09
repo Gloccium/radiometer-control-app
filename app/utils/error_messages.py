@@ -10,6 +10,10 @@ def show_error(icon, title, text):
 
 
 def is_network_error(status):
+    if status == 400:
+        show_error(QMessageBox.Critical, "Ошибка сохранения",
+                   f"Данная запись уже существует на сервере. Ошибка {status}")
+        return True
     if status == 401:
         show_error(QMessageBox.Critical, "Ошибка авторизации",
                    f"Не удалось пройти авторизацию. Ошибка {status}")
