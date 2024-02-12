@@ -83,6 +83,7 @@ class GraphWidget(FigureCanvas):
         self.current_step_number = 0
         self.current_segment_number = 0
         self.total_segment_count = 0
+        self.time_label = [0.0]
 
         self.delta_lines, = self.delta_ax.plot([], [], 'r')
         self.channel_a_lines, = self.channels_ax.plot([], [], 'g')
