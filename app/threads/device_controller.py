@@ -11,6 +11,7 @@ class DeviceController(QObject):
         super().__init__()
         self.port = ""
         self.baudrate = 9600
+        self.device_frequency = 12000
         self.channel_data = Queue()
         self.serial = None
         self.is_running = False

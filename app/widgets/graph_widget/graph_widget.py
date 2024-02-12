@@ -19,12 +19,12 @@ class GraphWidget(FigureCanvas):
 
         self.update_rate_ms = 200
         self.current_step_number = 0
-        self.max_step_count = 100
+        self.max_step_count = 2000
         self.current_segment_number = 0
-        self.max_segment_count = 5
+        self.max_segment_count = 8
         self.total_segment_count = 0
         self.time_label = [0.0]
-        self.break_length = 3
+        self.break_length = 10
         self.rescale_sensitivity = 2
         self.calibration_data = []
 
@@ -38,6 +38,7 @@ class GraphWidget(FigureCanvas):
         self.b2_param, self.a2_param = signal.iirfilter(2, 0.1, ftype='butter', btype='lowpass', fs=400)
         self.decimation_rate = 10
 
+        self.signals_count = 0
         self.previous_value = 0
         self.error_count = 0
         self.package_count = 0
@@ -141,8 +142,7 @@ class GraphWidget(FigureCanvas):
 
     def update_x_label(self) -> None:
         if self.current_step_number % (self.max_step_count // self.max_segment_count) == 0:
-            interval = time.time() - self.time_ms
-            self.time_ms = time.time()
+            interval = self.signals_count / self.device_controller.device_frequency
             self.current_segment_number = (self.current_segment_number + 1) % self.max_segment_count
             current_time = self.time_label[self.current_segment_number - 1] + interval
             if self.total_segment_count < self.max_segment_count - 1:
@@ -151,6 +151,7 @@ class GraphWidget(FigureCanvas):
                 self.time_label[self.current_segment_number] = current_time
             [graph.ax.set_xticklabels([f'{round(tm, 1)}s' for tm in self.time_label]) for graph in self.graphs]
             self.total_segment_count += 1
+            self.signals_count = 0
 
     def plot_delta(self) -> None:
         if self.delta_graph.first_full:
@@ -251,7 +252,6 @@ class GraphWidget(FigureCanvas):
     def check_iteration(self) -> None:
         for graph in self.graphs:
             if graph.is_first_iteration:
-                self.time_ms = time.time()
                 graph.ax.set_ylim(graph.y1[0] - graph.offset, graph.y1[0] + graph.offset)
                 graph.last_scaled_y_value = graph.y1[0]
                 graph.is_first_iteration = False
@@ -302,6 +302,7 @@ class GraphWidget(FigureCanvas):
             else:
                 start = 1
             starts = list(sorted(list(e.channelAStarts) + list(e.channelBStarts)))
+            self.signals_count += starts[-1]
             for i in range(len(starts) - 1):
                 if start == prev and i == 0:
                     if start == 0:
