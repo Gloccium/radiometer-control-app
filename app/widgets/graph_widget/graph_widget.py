@@ -302,7 +302,7 @@ class GraphWidget(FigureCanvas):
             else:
                 start = 1
             starts = list(sorted(list(e.channelAStarts) + list(e.channelBStarts)))
-            self.signals_count += starts[-1]
+            self.signals_count += len(self.channel_data)
             for i in range(len(starts) - 1):
                 if start == prev and i == 0:
                     if start == 0:
