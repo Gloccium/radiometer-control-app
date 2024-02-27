@@ -1,6 +1,5 @@
 import base64
 import binascii
-import time
 
 from PyQt5.QtWidgets import QSizePolicy
 from google.protobuf.message import DecodeError
@@ -302,7 +301,7 @@ class GraphWidget(FigureCanvas):
             else:
                 start = 1
             starts = list(sorted(list(e.channelAStarts) + list(e.channelBStarts)))
-            self.signals_count += len(self.channel_data)
+            self.signals_count += len(e.channelData)
             for i in range(len(starts) - 1):
                 if start == prev and i == 0:
                     if start == 0:
