@@ -219,14 +219,22 @@ class GraphWindow(QWidget):
             self.channels_graph_offset.setDisabled(False)
 
     def rescale_delta_graph(self):
-        if self.delta_graph_offset.offset_value.text() != '':
-            self.plot.delta_graph.offset = int(self.delta_graph_offset.offset_value.text())
-            self.plot.rescale_delta_graph_manually()
+        offset_value = self.delta_graph_offset.offset_value.text().lstrip('0')
+        if self.delta_graph_offset.offset_value.text() == '':
+            self.delta_graph_offset.offset_value.setText('1')
+        else:
+            self.delta_graph_offset.offset_value.setText(offset_value)
+        self.plot.delta_graph.offset = int(self.delta_graph_offset.offset_value.text())
+        self.plot.rescale_delta_graph_manually()
 
     def rescale_channels_graph(self):
-        if self.channels_graph_offset.offset_value.text() != '':
-            self.plot.channels_graph.offset = int(self.channels_graph_offset.offset_value.text())
-            self.plot.rescale_channels_graph_manually()
+        offset_value = self.channels_graph_offset.offset_value.text().lstrip('0')
+        if self.channels_graph_offset.offset_value.text() == '':
+            self.channels_graph_offset.offset_value.setText('1')
+        else:
+            self.channels_graph_offset.offset_value.setText(offset_value)
+        self.plot.channels_graph.offset = int(self.channels_graph_offset.offset_value.text())
+        self.plot.rescale_channels_graph_manually()
 
     def configure_elements(self) -> None:
         self.start_button = QPushButton('Начать исследование', self)
