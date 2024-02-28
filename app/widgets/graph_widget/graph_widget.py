@@ -14,7 +14,7 @@ from app.signals.my_signal import MySignal
 
 class GraphWidget(FigureCanvas):
     def __init__(self, graph_window=None, device_controller=None):
-        self.parent = graph_window
+        self.graph_window = graph_window
 
         self.update_rate_ms = 200
         self.current_step_number = 0
@@ -24,7 +24,6 @@ class GraphWidget(FigureCanvas):
         self.total_segment_count = 0
         self.time_label = [0.0]
         self.break_length = 10
-        self.rescale_sensitivity = 2
         self.calibration_data = []
 
         self.device_controller = device_controller
@@ -58,8 +57,11 @@ class GraphWidget(FigureCanvas):
         self.channel_b_lines, = self.channels_ax.plot([], [], 'b', label='Канал B')
         self.channels_ax.legend(loc="upper right")
 
-        self.delta_graph = GraphData(self.delta_ax, 2, self.delta_lines, None)
-        self.channels_graph = GraphData(self.channels_ax, 1000, self.channel_a_lines, self.channel_b_lines)
+        self.auto_mode = False
+        self.delta_graph = GraphData(self.delta_ax, self.graph_window.settings_window.delta_graph_offset_value,
+                                     self.delta_lines, None)
+        self.channels_graph = GraphData(self.channels_ax, self.graph_window.settings_window.channels_graph_offset_value,
+                                        self.channel_a_lines, self.channel_b_lines)
         self.graphs = [self.delta_graph, self.channels_graph]
 
         FigureCanvas.__init__(self, self.figure)
@@ -118,7 +120,7 @@ class GraphWidget(FigureCanvas):
         self.channel_data = []
         channel_data = [self.device_controller.channel_data.get()
                         for _ in range(self.device_controller.channel_data.qsize())]
-        [self.parent.data.append(packet) for packet in channel_data]
+        [self.graph_window.data.append(packet) for packet in channel_data]
         self.decode_packages(channel_data)
 
     def decode_packages(self, channel_data: list[str]) -> None:
@@ -255,27 +257,50 @@ class GraphWidget(FigureCanvas):
                 graph.last_scaled_y_value = graph.y1[0]
                 graph.is_first_iteration = False
 
-    def rescale(self) -> None:
+    def rescale_on_iteration(self) -> None:
         for graph in self.graphs:
-            if not graph.first_full and (graph.y1[-1] > graph.last_scaled_y_value + graph.offset / self.rescale_sensitivity
-                                         or graph.y1[-1] < graph.last_scaled_y_value - graph.offset / self.rescale_sensitivity):
+            if not graph.first_full and (graph.y1[-1] > graph.last_scaled_y_value + graph.offset
+                                         or graph.y1[-1] < graph.last_scaled_y_value - graph.offset):
                 graph.last_scaled_y_value = graph.y1[-1]
                 graph.ax.set_ylim(graph.y1[-1] - graph.offset, graph.y1[-1] + graph.offset)
 
-            if not graph.second_full and (graph.y2[-1] > graph.last_scaled_y_value + graph.offset / self.rescale_sensitivity
-                                         or graph.y2[-1] < graph.last_scaled_y_value - graph.offset / self.rescale_sensitivity):
+            if not graph.second_full and (graph.y2[-1] > graph.last_scaled_y_value + graph.offset
+                                         or graph.y2[-1] < graph.last_scaled_y_value - graph.offset):
                 graph.last_scaled_y_value = graph.y2[-1]
                 graph.ax.set_ylim(graph.y2[-1] - graph.offset, graph.y2[-1] + graph.offset)
+
+    def rescale_auto_mode(self):
+        self.delta_graph.ax.set_ylim(min(self.delta_graph.y1 + self.delta_graph.y2),
+                                     max(self.delta_graph.y1 + self.delta_graph.y2))
+        self.channels_graph.ax.set_ylim(min(self.channels_graph.y1 + self.channels_graph.y2),
+                                        max(self.channels_graph.y1 + self.channels_graph.y2))
+
+    def rescale_delta_graph_manually(self):
+        if self.delta_graph.second_full and len(self.delta_graph.y1) > 0:
+            self.delta_graph.ax.set_ylim(self.delta_graph.y1[-1] - self.delta_graph.offset,
+                                         self.delta_graph.y1[-1] + self.delta_graph.offset)
+        if self.delta_graph.first_full and len(self.delta_graph.y2) > 0:
+            self.delta_graph.ax.set_ylim(self.delta_graph.y2[-1] - self.delta_graph.offset,
+                                         self.delta_graph.y2[-1] + self.delta_graph.offset)
+
+    def rescale_channels_graph_manually(self):
+        if self.channels_graph.second_full and len(self.channels_graph.y1) > 0:
+            self.channels_graph.ax.set_ylim(self.channels_graph.y1[-1] - self.channels_graph.offset,
+                                            self.channels_graph.y1[-1] + self.channels_graph.offset)
+        if self.channels_graph.first_full and len(self.channels_graph.y2) > 0:
+            self.channels_graph.ax.set_ylim(self.channels_graph.y2[-1] - self.channels_graph.offset,
+                                            self.channels_graph.y2[-1] + self.channels_graph.offset)
 
     def switch_plots(self) -> None:
         for graph in self.graphs:
             if self.current_step_number % self.max_step_count == 0:
                 self.current_step_number = 0
                 graph.first_full, graph.second_full = graph.second_full, graph.first_full
-                if graph.first_full:
-                    graph.ax.set_ylim(graph.y1[-1] - graph.offset, graph.y1[-1] + graph.offset)
-                if graph.second_full:
-                    graph.ax.set_ylim(graph.y2[-1] - graph.offset, graph.y2[-1] + graph.offset)
+                if not self.auto_mode:
+                    if graph.first_full:
+                        graph.ax.set_ylim(graph.y1[-1] - graph.offset, graph.y1[-1] + graph.offset)
+                    if graph.second_full:
+                        graph.ax.set_ylim(graph.y2[-1] - graph.offset, graph.y2[-1] + graph.offset)
 
     @staticmethod
     def iir_filter(array: list[int | float], b: float, a: float) -> list[float]:
@@ -361,8 +386,13 @@ class GraphWidget(FigureCanvas):
         delta_value = self.calculate_calibrated_value(delta_value)
         self.current_step_number += 1
         self.add_points(delta_value, channel_a_value, channel_b_value)
+
         self.check_iteration()
-        self.rescale()
+        if not self.auto_mode:
+            self.rescale_on_iteration()
+        else:
+            self.rescale_auto_mode()
+
         self.switch_plots()
         self.plot_delta()
         self.plot_channels()

@@ -14,12 +14,12 @@ from app.windows.patient_window import PatientWindow
 
 
 class SendingWindow(QWidget):
-    def __init__(self):
+    def __init__(self, settings_window):
         super().__init__()
         self.session = aiohttp.ClientSession(loop=asyncio.get_event_loop())
         self.patients_window = None
 
-        self.settings_window = None
+        self.settings_window = settings_window
         self.graph_window = None
 
         self.is_authentificated = False

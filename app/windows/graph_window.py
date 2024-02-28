@@ -5,7 +5,8 @@ from datetime import datetime
 import aiohttp
 import serial.tools.list_ports
 from PyQt5.QtCore import QThread
-from PyQt5.QtWidgets import QWidget, QPushButton, QListWidget, QListWidgetItem, QMessageBox, QFileDialog, QLineEdit
+from PyQt5.QtWidgets import QWidget, QPushButton, QListWidget, QListWidgetItem, QMessageBox, QFileDialog, QLineEdit, \
+    QCheckBox
 from qasync import asyncSlot, asyncClose
 from serial import Serial, SerialException
 
@@ -15,16 +16,17 @@ from app.threads.device_controller import DeviceController
 from app.threads.timer import Timer
 from app.widgets.graph_widget.graph_widget import GraphWidget
 from app.widgets.list_adapter_widget.single_list_adapter_widget import SingleListAdapter
+from app.widgets.offset_parameter_widget.offset_parameter_widget import OffsetParameter
 from app.windows.calibration_window import CalibrationWindow
 from app.windows.device_selection_window import DeviceSelectionWindow
 from app.windows.device_window import DeviceWindow
 
 
 class GraphWindow(QWidget):
-    def __init__(self):
+    def __init__(self, settings_window):
         super().__init__()
         self.session = aiohttp.ClientSession(loop=asyncio.get_event_loop())
-        self.settings_window = None
+        self.settings_window = settings_window
         self.sending_window = None
 
         self.plot = None
@@ -38,6 +40,10 @@ class GraphWindow(QWidget):
         self.update_port_list_button = None
         self.selected_port = None
         self.active_ports = [port.name for port in serial.tools.list_ports.comports()]
+
+        self.auto_mode_checkbox = QCheckBox("Показывать весь график")
+        self.delta_graph_offset = OffsetParameter('Окно по оси Y графика температуры')
+        self.channels_graph_offset = OffsetParameter('Окно по оси Y графика каналов')
 
         self.devices = []
         self.device_window = None
@@ -200,6 +206,28 @@ class GraphWindow(QWidget):
         else:
             self.toggle_channels_button.setText('Показать каналы')
 
+    def toggle_auto_mode(self):
+        if self.auto_mode_checkbox.isChecked():
+            self.plot.auto_mode = True
+            self.delta_graph_offset.setDisabled(True)
+            self.channels_graph_offset.setDisabled(True)
+        else:
+            self.plot.auto_mode = False
+            self.plot.rescale_delta_graph_manually()
+            self.plot.rescale_channels_graph_manually()
+            self.delta_graph_offset.setDisabled(False)
+            self.channels_graph_offset.setDisabled(False)
+
+    def rescale_delta_graph(self):
+        if self.delta_graph_offset.offset_value.text() != '':
+            self.plot.delta_graph.offset = int(self.delta_graph_offset.offset_value.text())
+            self.plot.rescale_delta_graph_manually()
+
+    def rescale_channels_graph(self):
+        if self.channels_graph_offset.offset_value.text() != '':
+            self.plot.channels_graph.offset = int(self.channels_graph_offset.offset_value.text())
+            self.plot.rescale_channels_graph_manually()
+
     def configure_elements(self) -> None:
         self.start_button = QPushButton('Начать исследование', self)
         self.start_button.clicked.connect(self.start_device)
@@ -223,6 +251,13 @@ class GraphWindow(QWidget):
 
         self.filename.setDisabled(True)
         self.select_local_calibration_button.clicked.connect(self.select_local_calibration)
+
+        self.delta_graph_offset.offset_value.setText(str(self.settings_window.delta_graph_offset_value))
+        self.channels_graph_offset.offset_value.setText(str(self.settings_window.channels_graph_offset_value))
+
+        self.auto_mode_checkbox.stateChanged.connect(self.toggle_auto_mode)
+        self.delta_graph_offset.offset_value.textChanged.connect(self.rescale_delta_graph)
+        self.channels_graph_offset.offset_value.textChanged.connect(self.rescale_channels_graph)
 
     def set_visibility(self):
         if self.sending_window is not None and self.sending_window.is_authentificated:

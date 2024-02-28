@@ -17,13 +17,10 @@ class TabWidget(QWidget):
         self.tabs.resize(1600, 1200)
 
         self.settings_window = SettingsWindow()
-        self.graph_window = GraphWindow()
-        self.sending_window = SendingWindow()
+        self.graph_window = GraphWindow(self.settings_window)
+        self.sending_window = SendingWindow(self.settings_window)
 
-        self.graph_window.settings_window = self.settings_window
         self.graph_window.sending_window = self.sending_window
-
-        self.sending_window.settings_window = self.settings_window
         self.sending_window.graph_window = self.graph_window
 
         self.tabs.addTab(self.graph_tab, "График")
@@ -32,6 +29,9 @@ class TabWidget(QWidget):
 
         self.graph_tab.layout = QGridLayout(self)
         self.graph_tab.layout.addWidget(self.graph_window.plot)
+        self.graph_tab.layout.addWidget(self.graph_window.auto_mode_checkbox)
+        self.graph_tab.layout.addWidget(self.graph_window.delta_graph_offset)
+        self.graph_tab.layout.addWidget(self.graph_window.channels_graph_offset)
         self.graph_tab.layout.addWidget(self.graph_window.filename)
         self.graph_tab.layout.addWidget(self.graph_window.select_local_calibration_button)
         self.graph_tab.layout.addWidget(self.graph_window.select_device_button)
@@ -59,11 +59,14 @@ class TabWidget(QWidget):
         self.sending_tab.setLayout(self.sending_tab.layout)
 
         self.settings_tab.layout = QVBoxLayout(self)
+        self.settings_tab.layout.addWidget(self.settings_window.server_address_label)
         self.settings_tab.layout.addWidget(self.settings_window.server_address_input)
         self.settings_tab.layout.addWidget(self.settings_window.records_directory)
         self.settings_tab.layout.addWidget(self.settings_window.records_directory_button)
         self.settings_tab.layout.addWidget(self.settings_window.calibration_directory)
         self.settings_tab.layout.addWidget(self.settings_window.calibration_directory_button)
+        self.settings_tab.layout.addWidget(self.settings_window.delta_graph_offset)
+        self.settings_tab.layout.addWidget(self.settings_window.channels_graph_offset)
         self.settings_tab.layout.addWidget(self.settings_window.save_button)
         self.settings_tab.layout.addStretch()
         self.settings_tab.setLayout(self.settings_tab.layout)
