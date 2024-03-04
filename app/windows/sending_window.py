@@ -8,6 +8,7 @@ from PyQt5.QtWidgets import QWidget, QPushButton, QLineEdit, QTimeEdit, QDateEdi
     QMessageBox
 from qasync import asyncSlot, asyncClose
 
+from app.const import BUTTON_HEIGHT
 from app.utils.error_messages import show_error, is_network_error
 from app.widgets.list_adapter_widget.double_list_adapter_widget import DoubleListAdapter
 from app.windows.patient_window import PatientWindow
@@ -50,12 +51,15 @@ class SendingWindow(QWidget):
         self.password.setPlaceholderText('Пароль')
         self.password.setEchoMode(QtWidgets.QLineEdit.Password)
         self.login_button.clicked.connect(self.login_action)
+        self.login_button.setFixedHeight(BUTTON_HEIGHT)
 
         self.patient.setPlaceholderText('Введите ФИО или заметки о пациенте')
         self.description.setPlaceholderText('Описание')
         self.date.setDate(QDate.currentDate())
         self.send_measurement_button.clicked.connect(self.send_measurement)
+        self.send_measurement_button.setFixedHeight(BUTTON_HEIGHT)
         self.add_patient_button.clicked.connect(self.add_patient)
+        self.add_patient_button.setFixedHeight(BUTTON_HEIGHT)
         self.patient.textChanged.connect(self.filter_patient_list)
         self.patient_list.clicked.connect(self.select_patient)
 

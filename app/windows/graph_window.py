@@ -10,13 +10,15 @@ from PyQt5.QtWidgets import QWidget, QPushButton, QListWidget, QListWidgetItem, 
 from qasync import asyncSlot, asyncClose
 from serial import Serial, SerialException
 
+from app.const import BUTTON_HEIGHT
 from app.utils.calibration_validation import validate_calibration
 from app.utils.error_messages import show_error, is_network_error
 from app.threads.device_controller import DeviceController
 from app.threads.timer import Timer
+from app.widgets.layouts.square_layout import SquareLayout
 from app.widgets.graph_widget.graph_widget import GraphWidget
 from app.widgets.list_adapter_widget.single_list_adapter_widget import SingleListAdapter
-from app.widgets.offset_parameter_widget.offset_parameter_widget import OffsetParameter
+from app.widgets.bounds.graph_bounds import GraphBounds
 from app.windows.calibration_window import CalibrationWindow
 from app.windows.device_selection_window import DeviceSelectionWindow
 from app.windows.device_window import DeviceWindow
@@ -30,20 +32,28 @@ class GraphWindow(QWidget):
         self.sending_window = None
 
         self.plot = None
-        self.start_button = None
-        self.toggle_channels_button = None
-        self.finish_button = None
+        self.start_button = QPushButton('Начать исследование', self)
+        self.toggle_channels_button = QPushButton('Скрыть каналы', self)
+        self.finish_button = QPushButton('Закончить исследование', self)
         self.data = []
         self.record_filename = None
 
         self.port_list = QListWidget()
-        self.update_port_list_button = None
+        self.update_port_list_button = QPushButton('Обновить список портов', self)
         self.selected_port = None
         self.active_ports = [port.name for port in serial.tools.list_ports.comports()]
 
-        self.auto_mode_checkbox = QCheckBox("Показывать весь график")
-        self.delta_graph_offset = OffsetParameter('Окно по оси Y графика температуры')
-        self.channels_graph_offset = OffsetParameter('Окно по оси Y графика каналов')
+        self.controls = SquareLayout(self.toggle_channels_button, self.update_port_list_button,
+                                     self.start_button, self.finish_button)
+
+        self.delta_graph_auto_mode = QCheckBox("Показывать весь график температуры")
+        self.delta_graph_bounds = GraphBounds('Min графика температуры', 'Max графика температуры')
+
+        self.channels_graph_auto_mode = QCheckBox("Показывать весь график каналов")
+        self.channels_graph_bounds = GraphBounds('Min графика каналов', 'Max графика каналов')
+
+        self.bounds_controls = SquareLayout(self.delta_graph_auto_mode, self.channels_graph_auto_mode,
+                                            self.delta_graph_bounds, self.channels_graph_bounds)
 
         self.devices = []
         self.device_window = None
@@ -206,66 +216,92 @@ class GraphWindow(QWidget):
         else:
             self.toggle_channels_button.setText('Показать каналы')
 
-    def toggle_auto_mode(self):
-        if self.auto_mode_checkbox.isChecked():
-            self.plot.auto_mode = True
-            self.delta_graph_offset.setDisabled(True)
-            self.channels_graph_offset.setDisabled(True)
+    def toggle_delta_graph_auto_mode(self):
+        if self.delta_graph_auto_mode.isChecked():
+            self.plot.delta_graph_auto_mode = True
+            self.delta_graph_bounds.setDisabled(True)
         else:
-            self.plot.auto_mode = False
+            self.plot.delta_graph_auto_mode = False
             self.plot.rescale_delta_graph_manually()
+            self.delta_graph_bounds.setDisabled(False)
+
+    def toggle_channels_graph_auto_mode(self):
+        if self.channels_graph_auto_mode.isChecked():
+            self.plot.channels_graph_auto_mode = True
+            self.channels_graph_bounds.setDisabled(True)
+        else:
+            self.plot.channels_graph_auto_mode = False
             self.plot.rescale_channels_graph_manually()
-            self.delta_graph_offset.setDisabled(False)
-            self.channels_graph_offset.setDisabled(False)
+            self.channels_graph_bounds.setDisabled(False)
 
     def rescale_delta_graph(self):
-        offset_value = self.delta_graph_offset.offset_value.text().lstrip('0')
-        if self.delta_graph_offset.offset_value.text() == '':
-            self.delta_graph_offset.offset_value.setText('1')
+        min_value = self.delta_graph_bounds.min_value.text().lstrip('0')
+        max_value = self.delta_graph_bounds.max_value.text().lstrip('0')
+        if self.delta_graph_bounds.min_value.text() == '' or self.delta_graph_bounds.max_value.text() == '':
+            self.delta_graph_bounds.min_value.setText('1')
+            self.delta_graph_bounds.max_value.setText('1')
         else:
-            self.delta_graph_offset.offset_value.setText(offset_value)
-        self.plot.delta_graph.offset = int(self.delta_graph_offset.offset_value.text())
+            self.delta_graph_bounds.min_value.setText(min_value)
+            self.delta_graph_bounds.max_value.setText(max_value)
+        self.plot.delta_graph.min = float(self.delta_graph_bounds.min_value.text())
+        self.plot.delta_graph.max = float(self.delta_graph_bounds.max_value.text())
         self.plot.rescale_delta_graph_manually()
 
     def rescale_channels_graph(self):
-        offset_value = self.channels_graph_offset.offset_value.text().lstrip('0')
-        if self.channels_graph_offset.offset_value.text() == '':
-            self.channels_graph_offset.offset_value.setText('1')
+        min_value = self.channels_graph_bounds.min_value.text().lstrip('0')
+        max_value = self.channels_graph_bounds.max_value.text().lstrip('0')
+        if self.channels_graph_bounds.min_value.text() == '' or self.channels_graph_bounds.max_value.text() == '':
+            self.channels_graph_bounds.min_value.setText('1')
+            self.channels_graph_bounds.max_value.setText('1')
         else:
-            self.channels_graph_offset.offset_value.setText(offset_value)
-        self.plot.channels_graph.offset = int(self.channels_graph_offset.offset_value.text())
+            self.channels_graph_bounds.min_value.setText(min_value)
+            self.channels_graph_bounds.max_value.setText(max_value)
+        self.plot.channels_graph.min = float(self.channels_graph_bounds.min_value.text())
+        self.plot.channels_graph.max = float(self.channels_graph_bounds.max_value.text())
         self.plot.rescale_channels_graph_manually()
 
     def configure_elements(self) -> None:
-        self.start_button = QPushButton('Начать исследование', self)
         self.start_button.clicked.connect(self.start_device)
+        self.start_button.setFixedHeight(BUTTON_HEIGHT)
 
-        self.toggle_channels_button = QPushButton('Скрыть каналы', self)
         self.toggle_channels_button.clicked.connect(self.toggle_channels)
+        self.toggle_channels_button.setFixedHeight(BUTTON_HEIGHT)
 
-        self.finish_button = QPushButton('Закончить исследование', self)
         self.finish_button.clicked.connect(self.finish)
         self.finish_button.setDisabled(True)
+        self.finish_button.setFixedHeight(BUTTON_HEIGHT)
 
-        self.update_port_list_button = QPushButton('Обновить список портов', self)
         self.update_port_list_button.clicked.connect(self.update_port_list)
+        self.update_port_list_button.setFixedHeight(BUTTON_HEIGHT)
 
         self.port_list.setFixedHeight(120)
         self.port_list.clicked.connect(self.select_port)
 
         self.add_device_button.clicked.connect(self.add_device)
+        self.add_device_button.setFixedHeight(BUTTON_HEIGHT)
+
         self.add_calibration_button.clicked.connect(self.add_calibration)
+        self.add_calibration_button.setFixedHeight(BUTTON_HEIGHT)
+
         self.select_device_button.clicked.connect(self.select_device)
+        self.select_device_button.setFixedHeight(BUTTON_HEIGHT)
 
         self.filename.setDisabled(True)
         self.select_local_calibration_button.clicked.connect(self.select_local_calibration)
+        self.select_local_calibration_button.setFixedHeight(BUTTON_HEIGHT)
 
-        self.delta_graph_offset.offset_value.setText(str(self.settings_window.delta_graph_offset_value))
-        self.channels_graph_offset.offset_value.setText(str(self.settings_window.channels_graph_offset_value))
+        self.delta_graph_bounds.min_value.setText(str(self.settings_window.min_delta_graph_value))
+        self.delta_graph_bounds.max_value.setText(str(self.settings_window.max_delta_graph_value))
+        self.channels_graph_bounds.min_value.setText(str(self.settings_window.min_channels_graph_value))
+        self.channels_graph_bounds.max_value.setText(str(self.settings_window.max_channels_graph_value))
 
-        self.auto_mode_checkbox.stateChanged.connect(self.toggle_auto_mode)
-        self.delta_graph_offset.offset_value.textChanged.connect(self.rescale_delta_graph)
-        self.channels_graph_offset.offset_value.textChanged.connect(self.rescale_channels_graph)
+        self.delta_graph_auto_mode.stateChanged.connect(self.toggle_delta_graph_auto_mode)
+        self.delta_graph_bounds.min_value.textChanged.connect(self.rescale_delta_graph)
+        self.delta_graph_bounds.max_value.textChanged.connect(self.rescale_delta_graph)
+
+        self.channels_graph_auto_mode.stateChanged.connect(self.toggle_channels_graph_auto_mode)
+        self.channels_graph_bounds.min_value.textChanged.connect(self.rescale_channels_graph)
+        self.channels_graph_bounds.max_value.textChanged.connect(self.rescale_channels_graph)
 
     def set_visibility(self):
         if self.sending_window is not None and self.sending_window.is_authentificated:

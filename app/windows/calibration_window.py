@@ -6,6 +6,7 @@ from PyQt5.QtWidgets import QWidget, QPushButton, QLineEdit, QVBoxLayout, QMessa
     QListWidget, QListWidgetItem
 from qasync import asyncSlot, asyncClose
 
+from app.const import BUTTON_HEIGHT
 from app.utils.calibration_validation import validate_calibration
 from app.utils.error_messages import show_error, is_network_error
 from app.widgets.list_adapter_widget.double_list_adapter_widget import DoubleListAdapter
@@ -122,6 +123,8 @@ class CalibrationWindow(QWidget):
         self.date.setDate(QDate.currentDate())
         self.filename.setDisabled(True)
         self.file_browse_button.clicked.connect(self.open_file_dialog)
+        self.file_browse_button.setFixedHeight(BUTTON_HEIGHT)
         self.send_button.clicked.connect(self.send)
+        self.send_button.setFixedHeight(BUTTON_HEIGHT)
         self.device.textChanged.connect(self.filter_device_list)
         self.device_list.clicked.connect(self.select_device)

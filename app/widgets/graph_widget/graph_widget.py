@@ -57,11 +57,13 @@ class GraphWidget(FigureCanvas):
         self.channel_b_lines, = self.channels_ax.plot([], [], 'b', label='Канал B')
         self.channels_ax.legend(loc="upper right")
 
-        self.auto_mode = False
-        self.delta_graph = GraphData(self.delta_ax, self.graph_window.settings_window.delta_graph_offset_value,
-                                     self.delta_lines, None)
-        self.channels_graph = GraphData(self.channels_ax, self.graph_window.settings_window.channels_graph_offset_value,
-                                        self.channel_a_lines, self.channel_b_lines)
+        self.delta_graph_auto_mode = False
+        self.channels_graph_auto_mode = False
+        self.delta_graph = GraphData(self.delta_ax, self.graph_window.settings_window.min_delta_graph_value,
+                                     self.graph_window.settings_window.max_delta_graph_value, self.delta_lines, None)
+        self.channels_graph = GraphData(self.channels_ax, self.graph_window.settings_window.min_channels_graph_value,
+                                        self.graph_window.settings_window.max_channels_graph_value, self.channel_a_lines,
+                                        self.channel_b_lines)
         self.graphs = [self.delta_graph, self.channels_graph]
 
         FigureCanvas.__init__(self, self.figure)
@@ -94,8 +96,10 @@ class GraphWidget(FigureCanvas):
         self.delta_ax.grid()
         self.channels_ax.grid()
 
-        self.delta_graph = GraphData(self.delta_ax, 2, self.delta_lines, None)
-        self.channels_graph = GraphData(self.channels_ax, 1000, self.channel_a_lines, self.channel_b_lines)
+        self.delta_graph = GraphData(self.delta_ax, self.delta_graph.min, self.delta_graph.max,
+                                     self.delta_lines, None)
+        self.channels_graph = GraphData(self.channels_ax, self.channels_graph.min, self.channels_graph.max,
+                                        self.channel_a_lines, self.channel_b_lines)
         self.graphs = [self.delta_graph, self.channels_graph]
 
         self.configure_plot()
@@ -253,54 +257,29 @@ class GraphWidget(FigureCanvas):
     def check_iteration(self) -> None:
         for graph in self.graphs:
             if graph.is_first_iteration:
-                graph.ax.set_ylim(graph.y1[0] - graph.offset, graph.y1[0] + graph.offset)
-                graph.last_scaled_y_value = graph.y1[0]
+                graph.ax.set_ylim(graph.min, graph.max)
                 graph.is_first_iteration = False
 
-    def rescale_on_iteration(self) -> None:
-        for graph in self.graphs:
-            if not graph.first_full and (graph.y1[-1] > graph.last_scaled_y_value + graph.offset
-                                         or graph.y1[-1] < graph.last_scaled_y_value - graph.offset):
-                graph.last_scaled_y_value = graph.y1[-1]
-                graph.ax.set_ylim(graph.y1[-1] - graph.offset, graph.y1[-1] + graph.offset)
+    def rescale_delta_graph_auto_mode(self):
+        delta_graph_data = self.delta_graph.y1 + self.delta_graph.y2
+        self.delta_graph.ax.set_ylim(min(delta_graph_data), max(delta_graph_data))
 
-            if not graph.second_full and (graph.y2[-1] > graph.last_scaled_y_value + graph.offset
-                                         or graph.y2[-1] < graph.last_scaled_y_value - graph.offset):
-                graph.last_scaled_y_value = graph.y2[-1]
-                graph.ax.set_ylim(graph.y2[-1] - graph.offset, graph.y2[-1] + graph.offset)
-
-    def rescale_auto_mode(self):
-        self.delta_graph.ax.set_ylim(min(self.delta_graph.y1 + self.delta_graph.y2),
-                                     max(self.delta_graph.y1 + self.delta_graph.y2))
-        self.channels_graph.ax.set_ylim(min(self.channels_graph.y1 + self.channels_graph.y2),
-                                        max(self.channels_graph.y1 + self.channels_graph.y2))
+    def rescale_channels_graph_auto_mode(self):
+        channels_graph_data = self.channels_graph.y1 + self.channels_graph.y2 \
+                              + self.channels_graph.y1_b + self.channels_graph.y2_b
+        self.channels_graph.ax.set_ylim(min(channels_graph_data), max(channels_graph_data))
 
     def rescale_delta_graph_manually(self):
-        if self.delta_graph.second_full and len(self.delta_graph.y1) > 0:
-            self.delta_graph.ax.set_ylim(self.delta_graph.y1[-1] - self.delta_graph.offset,
-                                         self.delta_graph.y1[-1] + self.delta_graph.offset)
-        if self.delta_graph.first_full and len(self.delta_graph.y2) > 0:
-            self.delta_graph.ax.set_ylim(self.delta_graph.y2[-1] - self.delta_graph.offset,
-                                         self.delta_graph.y2[-1] + self.delta_graph.offset)
+        self.delta_graph.ax.set_ylim(self.delta_graph.min, self.delta_graph.max)
 
     def rescale_channels_graph_manually(self):
-        if self.channels_graph.second_full and len(self.channels_graph.y1) > 0:
-            self.channels_graph.ax.set_ylim(self.channels_graph.y1[-1] - self.channels_graph.offset,
-                                            self.channels_graph.y1[-1] + self.channels_graph.offset)
-        if self.channels_graph.first_full and len(self.channels_graph.y2) > 0:
-            self.channels_graph.ax.set_ylim(self.channels_graph.y2[-1] - self.channels_graph.offset,
-                                            self.channels_graph.y2[-1] + self.channels_graph.offset)
+        self.channels_graph.ax.set_ylim(self.channels_graph.min, self.channels_graph.max)
 
     def switch_plots(self) -> None:
         for graph in self.graphs:
             if self.current_step_number % self.max_step_count == 0:
                 self.current_step_number = 0
                 graph.first_full, graph.second_full = graph.second_full, graph.first_full
-                if not self.auto_mode:
-                    if graph.first_full:
-                        graph.ax.set_ylim(graph.y1[-1] - graph.offset, graph.y1[-1] + graph.offset)
-                    if graph.second_full:
-                        graph.ax.set_ylim(graph.y2[-1] - graph.offset, graph.y2[-1] + graph.offset)
 
     @staticmethod
     def iir_filter(array: list[int | float], b: float, a: float) -> list[float]:
@@ -388,10 +367,10 @@ class GraphWidget(FigureCanvas):
         self.add_points(delta_value, channel_a_value, channel_b_value)
 
         self.check_iteration()
-        if not self.auto_mode:
-            self.rescale_on_iteration()
-        else:
-            self.rescale_auto_mode()
+        if self.delta_graph_auto_mode:
+            self.rescale_delta_graph_auto_mode()
+        if self.channels_graph_auto_mode:
+            self.rescale_channels_graph_auto_mode()
 
         self.switch_plots()
         self.plot_delta()

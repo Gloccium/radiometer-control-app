@@ -3,6 +3,7 @@ import aiohttp as aiohttp
 from PyQt5.QtWidgets import QWidget, QPushButton, QLineEdit, QVBoxLayout, QMessageBox
 from qasync import asyncSlot, asyncClose
 
+from app.const import BUTTON_HEIGHT
 from app.utils.error_messages import show_error, is_network_error
 
 
@@ -28,6 +29,7 @@ class DeviceWindow(QWidget):
         self.name.setPlaceholderText('Название')
         self.description.setPlaceholderText('Описание')
         self.send_button.clicked.connect(self.send)
+        self.send_button.setFixedHeight(BUTTON_HEIGHT)
 
     @asyncSlot()
     async def send(self):
