@@ -5,6 +5,7 @@ from PyQt5.QtWidgets import QWidget, QLineEdit, QPushButton, QFileDialog, QMessa
 
 from app.const import BUTTON_HEIGHT
 from app.utils.error_messages import show_error
+from app.utils.check_bound import check_bound
 from app.widgets.bounds.graph_bounds import GraphBounds
 
 
@@ -24,12 +25,14 @@ class SettingsWindow(QWidget):
         self.records_directory_button = QPushButton('Выбрать директорию для исследований', self)
         self.calibration_directory = QLineEdit(self)
         self.calibration_directory_button = QPushButton('Выбрать директорию для калибровок', self)
-        self.delta_graph_bounds = GraphBounds('Min графика температуры', 'Max графика температуры')
-        self.channels_graph_bounds = GraphBounds('Min графика каналов', 'Max графика каналов')
         self.save_button = QPushButton('Сохранить', self)
         self.init_config_file()
         self.init_default_directories()
         self.load_configuration()
+        self.delta_graph_bounds = GraphBounds('Min графика температуры', 'Max графика температуры',
+                                              self.min_delta_graph_value, self.max_delta_graph_value)
+        self.channels_graph_bounds = GraphBounds('Min графика каналов', 'Max графика каналов',
+                                                 self.min_channels_graph_value, self.max_channels_graph_value)
         self.configure_elements()
 
     def select_records_directory(self):
@@ -65,11 +68,6 @@ class SettingsWindow(QWidget):
             print(e)
             show_error(QMessageBox.Critical, "Ошибка при создании директории калибровок", "Директория не может быть создана")
 
-        if self.delta_graph_bounds.min_value.text() == '' or self.delta_graph_bounds.max_value.text() == ''\
-                or self.channels_graph_bounds.min_value.text() == '' or self.channels_graph_bounds.max_value.text() == '':
-            show_error(QMessageBox.Critical, "Ошибка при сохранении параметров графиков", "Параметры графиков не могут быть пустыми")
-            return
-
         self.save_config_file()
 
     def save_config_file(self):
@@ -90,10 +88,10 @@ class SettingsWindow(QWidget):
             config_data = json.loads(f.read())
             self.records_directory_path = config_data["records_directory_path"]
             self.calibration_directory_path = config_data["calibration_directory_path"]
-            self.min_delta_graph_value = int(config_data["min_delta_graph_value"])
-            self.max_delta_graph_value = int(config_data["max_delta_graph_value"])
-            self.min_channels_graph_value = int(config_data["min_channels_graph_value"])
-            self.max_channels_graph_value = int(config_data["max_channels_graph_value"])
+            self.min_delta_graph_value = float(config_data["min_delta_graph_value"])
+            self.max_delta_graph_value = float(config_data["max_delta_graph_value"])
+            self.min_channels_graph_value = float(config_data["min_channels_graph_value"])
+            self.max_channels_graph_value = float(config_data["max_channels_graph_value"])
 
     @staticmethod
     def init_config_file():
@@ -115,6 +113,32 @@ class SettingsWindow(QWidget):
         os.makedirs("./records", exist_ok=True)
         os.makedirs("./calibrationData", exist_ok=True)
 
+    @staticmethod
+    def set_min_bound(graph_bounds):
+        min_value = graph_bounds.min_value.text()
+        is_bound_valid = check_bound(min_value)
+
+        if not is_bound_valid:
+            min_value = graph_bounds.previous_min_value
+        if float(min_value) >= float(graph_bounds.max_value.text()):
+            min_value = graph_bounds.previous_min_value
+
+        graph_bounds.previous_min_value = min_value
+        graph_bounds.min_value.setText(str(min_value))
+
+    @staticmethod
+    def set_max_bound(graph_bounds):
+        max_value = graph_bounds.max_value.text()
+        is_bound_valid = check_bound(max_value)
+
+        if not is_bound_valid:
+            max_value = graph_bounds.previous_max_value
+        if float(max_value) <= float(graph_bounds.min_value.text()):
+            max_value = graph_bounds.previous_max_value
+
+        graph_bounds.previous_max_value = max_value
+        graph_bounds.max_value.setText(str(max_value))
+
     def configure_elements(self) -> None:
         self.server_address_input.setText(self.server_address)
         self.records_directory.setText(self.records_directory_path)
@@ -129,3 +153,7 @@ class SettingsWindow(QWidget):
         self.calibration_directory_button.setFixedHeight(BUTTON_HEIGHT)
         self.save_button.clicked.connect(self.save)
         self.save_button.setFixedHeight(BUTTON_HEIGHT)
+        self.delta_graph_bounds.min_value.textChanged.connect(lambda: self.set_min_bound(self.delta_graph_bounds))
+        self.delta_graph_bounds.max_value.textChanged.connect(lambda: self.set_max_bound(self.delta_graph_bounds))
+        self.channels_graph_bounds.min_value.textChanged.connect(lambda: self.set_min_bound(self.channels_graph_bounds))
+        self.channels_graph_bounds.max_value.textChanged.connect(lambda: self.set_max_bound(self.channels_graph_bounds))

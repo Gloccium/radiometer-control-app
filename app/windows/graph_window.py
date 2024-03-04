@@ -15,6 +15,7 @@ from app.utils.calibration_validation import validate_calibration
 from app.utils.error_messages import show_error, is_network_error
 from app.threads.device_controller import DeviceController
 from app.threads.timer import Timer
+from app.utils.check_bound import check_bound
 from app.widgets.layouts.square_layout import SquareLayout
 from app.widgets.graph_widget.graph_widget import GraphWidget
 from app.widgets.list_adapter_widget.single_list_adapter_widget import SingleListAdapter
@@ -47,10 +48,12 @@ class GraphWindow(QWidget):
                                      self.start_button, self.finish_button)
 
         self.delta_graph_auto_mode = QCheckBox("Показывать весь график температуры")
-        self.delta_graph_bounds = GraphBounds('Min графика температуры', 'Max графика температуры')
+        self.delta_graph_bounds = GraphBounds('Min графика температуры', 'Max графика температуры',
+                                              self.settings_window.min_delta_graph_value, self.settings_window.max_delta_graph_value)
 
         self.channels_graph_auto_mode = QCheckBox("Показывать весь график каналов")
-        self.channels_graph_bounds = GraphBounds('Min графика каналов', 'Max графика каналов')
+        self.channels_graph_bounds = GraphBounds('Min графика каналов', 'Max графика каналов',
+                                                 self.settings_window.min_channels_graph_value, self.settings_window.max_channels_graph_value)
 
         self.bounds_controls = SquareLayout(self.delta_graph_auto_mode, self.channels_graph_auto_mode,
                                             self.delta_graph_bounds, self.channels_graph_bounds)
@@ -234,30 +237,64 @@ class GraphWindow(QWidget):
             self.plot.rescale_channels_graph_manually()
             self.channels_graph_bounds.setDisabled(False)
 
-    def rescale_delta_graph(self):
-        min_value = self.delta_graph_bounds.min_value.text().lstrip('0')
-        max_value = self.delta_graph_bounds.max_value.text().lstrip('0')
-        if self.delta_graph_bounds.min_value.text() == '' or self.delta_graph_bounds.max_value.text() == '':
-            self.delta_graph_bounds.min_value.setText('1')
-            self.delta_graph_bounds.max_value.setText('1')
-        else:
-            self.delta_graph_bounds.min_value.setText(min_value)
-            self.delta_graph_bounds.max_value.setText(max_value)
-        self.plot.delta_graph.min = float(self.delta_graph_bounds.min_value.text())
-        self.plot.delta_graph.max = float(self.delta_graph_bounds.max_value.text())
+    def rescale_min_delta_graph(self):
+        min_value = self.delta_graph_bounds.min_value.text()
+        is_bound_valid = check_bound(min_value)
+
+        if not is_bound_valid:
+            min_value = self.delta_graph_bounds.previous_min_value
+        if float(min_value) >= float(self.delta_graph_bounds.max_value.text()):
+            min_value = self.delta_graph_bounds.previous_min_value
+
+        self.delta_graph_bounds.previous_min_value = min_value
+        self.delta_graph_bounds.min_value.setText(str(min_value))
+
+        self.plot.delta_graph.min = float(min_value)
         self.plot.rescale_delta_graph_manually()
 
-    def rescale_channels_graph(self):
-        min_value = self.channels_graph_bounds.min_value.text().lstrip('0')
-        max_value = self.channels_graph_bounds.max_value.text().lstrip('0')
-        if self.channels_graph_bounds.min_value.text() == '' or self.channels_graph_bounds.max_value.text() == '':
-            self.channels_graph_bounds.min_value.setText('1')
-            self.channels_graph_bounds.max_value.setText('1')
-        else:
-            self.channels_graph_bounds.min_value.setText(min_value)
-            self.channels_graph_bounds.max_value.setText(max_value)
-        self.plot.channels_graph.min = float(self.channels_graph_bounds.min_value.text())
-        self.plot.channels_graph.max = float(self.channels_graph_bounds.max_value.text())
+    def rescale_max_delta_graph(self):
+        max_value = self.delta_graph_bounds.max_value.text()
+        is_bound_valid = check_bound(max_value)
+
+        if not is_bound_valid:
+            max_value = self.delta_graph_bounds.previous_max_value
+        if float(max_value) <= float(self.delta_graph_bounds.min_value.text()):
+            max_value = self.delta_graph_bounds.previous_max_value
+
+        self.delta_graph_bounds.previous_max_value = max_value
+        self.delta_graph_bounds.max_value.setText(str(max_value))
+
+        self.plot.delta_graph.max = float(max_value)
+        self.plot.rescale_delta_graph_manually()
+
+    def rescale_min_channels_graph(self):
+        min_value = self.channels_graph_bounds.min_value.text()
+        is_bound_valid = check_bound(min_value)
+
+        if not is_bound_valid:
+            min_value = self.channels_graph_bounds.previous_min_value
+        if float(min_value) >= float(self.channels_graph_bounds.max_value.text()):
+            min_value = self.channels_graph_bounds.previous_min_value
+
+        self.channels_graph_bounds.previous_min_value = min_value
+        self.channels_graph_bounds.min_value.setText(str(min_value))
+
+        self.plot.channels_graph.min = float(min_value)
+        self.plot.rescale_channels_graph_manually()
+
+    def rescale_max_channels_graph(self):
+        max_value = self.channels_graph_bounds.max_value.text()
+        is_bound_valid = check_bound(max_value)
+
+        if not is_bound_valid:
+            max_value = self.channels_graph_bounds.previous_max_value
+        if float(max_value) <= float(self.channels_graph_bounds.min_value.text()):
+            max_value = self.channels_graph_bounds.previous_max_value
+
+        self.channels_graph_bounds.previous_max_value = max_value
+        self.channels_graph_bounds.max_value.setText(str(max_value))
+
+        self.plot.channels_graph.max = float(max_value)
         self.plot.rescale_channels_graph_manually()
 
     def configure_elements(self) -> None:
@@ -296,12 +333,12 @@ class GraphWindow(QWidget):
         self.channels_graph_bounds.max_value.setText(str(self.settings_window.max_channels_graph_value))
 
         self.delta_graph_auto_mode.stateChanged.connect(self.toggle_delta_graph_auto_mode)
-        self.delta_graph_bounds.min_value.textChanged.connect(self.rescale_delta_graph)
-        self.delta_graph_bounds.max_value.textChanged.connect(self.rescale_delta_graph)
+        self.delta_graph_bounds.min_value.textChanged.connect(self.rescale_min_delta_graph)
+        self.delta_graph_bounds.max_value.textChanged.connect(self.rescale_max_delta_graph)
 
         self.channels_graph_auto_mode.stateChanged.connect(self.toggle_channels_graph_auto_mode)
-        self.channels_graph_bounds.min_value.textChanged.connect(self.rescale_channels_graph)
-        self.channels_graph_bounds.max_value.textChanged.connect(self.rescale_channels_graph)
+        self.channels_graph_bounds.min_value.textChanged.connect(self.rescale_min_channels_graph)
+        self.channels_graph_bounds.max_value.textChanged.connect(self.rescale_max_channels_graph)
 
     def set_visibility(self):
         if self.sending_window is not None and self.sending_window.is_authentificated:
