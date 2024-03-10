@@ -80,7 +80,7 @@ class CalibrationWindow(QWidget):
     @asyncSlot()
     async def send(self):
         if self.name.text() == '' or self.calibration_file is None:
-            show_error(QMessageBox.Warning, "Неправильно заполенена форма", "Название и файл не выбраны")
+            show_error(QMessageBox.Warning, "Неправильно заполнена форма", "Название и файл не выбраны")
             return
 
         add_calibration_url = f'https://{self.settings_window.server_address}/add-calibration'
