@@ -62,6 +62,7 @@ class TabWidget(QWidget):
         self.settings_tab.layout.addWidget(self.settings_window.calibration_directory_button)
         self.settings_tab.layout.addWidget(self.settings_window.delta_graph_bounds)
         self.settings_tab.layout.addWidget(self.settings_window.channels_graph_bounds)
+        self.settings_tab.layout.addWidget(self.settings_window.locale_combobox)
         self.settings_tab.layout.addWidget(self.settings_window.save_button)
         self.settings_tab.layout.addStretch()
         self.settings_tab.setLayout(self.settings_tab.layout)

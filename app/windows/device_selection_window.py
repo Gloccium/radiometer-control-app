@@ -38,7 +38,7 @@ class DeviceSelectionWindow(QWidget):
 
     def select_calibration(self):
         data = base64.b64decode(self.filtered_calibrations[self.calibration_list.currentRow()]["Data"])
-        if validate_calibration(data):
+        if validate_calibration(data, self.settings_window.locale):
             self.graph_window.selected_calibration = self.filtered_calibrations[self.calibration_list.currentRow()]["Id"]
             self.graph_window.calibration_data = json.loads(data)
         else:

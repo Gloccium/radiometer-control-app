@@ -133,7 +133,7 @@ class GraphWindow(QWidget):
         if filename != '':
             with open(filename, 'r', encoding='utf-8') as f:
                 data = f.read()
-                if validate_calibration(data):
+                if validate_calibration(data, self.settings_window.locale):
                     self.filename.setText(filename)
                     self.calibration_data = json.loads(data)
                 else:
