@@ -9,6 +9,7 @@ from PyQt5.QtWidgets import QWidget, QPushButton, QLineEdit, QTimeEdit, QDateEdi
 from qasync import asyncSlot, asyncClose
 
 from app.const import BUTTON_HEIGHT
+from app.locales.locales import locales
 from app.utils.error_messages import show_error, is_network_error
 from app.widgets.list_adapter_widget.double_list_adapter_widget import DoubleListAdapter
 from app.windows.patient_window import PatientWindow
@@ -31,30 +32,27 @@ class SendingWindow(QWidget):
         self.filtered_patients = []
         self.selected_patient_index = None
 
-        self.login = QLineEdit()
-        self.password = QLineEdit()
+        self.login = QLineEdit(self)
+        self.password = QLineEdit(self)
 
-        self.date = QDateEdit()
-        self.time = QTimeEdit()
+        self.date = QDateEdit(self)
+        self.time = QTimeEdit(self)
         self.description = QLineEdit(self)
         self.patient = QLineEdit(self)
-        self.patient_list = QListWidget()
-        self.add_patient_button = QPushButton('Добавить пациента', self)
-        self.send_measurement_button = QPushButton('Отправить', self)
-        self.login_button = QPushButton('Войти', self)
+        self.patient_list = QListWidget(self)
+        self.add_patient_button = QPushButton(self)
+        self.send_measurement_button = QPushButton(self)
+        self.login_button = QPushButton(self)
 
         self.configure_elements()
+        self.set_texts()
         self.set_visibility()
 
     def configure_elements(self):
-        self.login.setPlaceholderText('Логин')
-        self.password.setPlaceholderText('Пароль')
         self.password.setEchoMode(QtWidgets.QLineEdit.Password)
         self.login_button.clicked.connect(self.login_action)
         self.login_button.setFixedHeight(BUTTON_HEIGHT)
 
-        self.patient.setPlaceholderText('Введите ФИО или заметки о пациенте')
-        self.description.setPlaceholderText('Описание')
         self.date.setDate(QDate.currentDate())
         self.send_measurement_button.clicked.connect(self.send_measurement)
         self.send_measurement_button.setFixedHeight(BUTTON_HEIGHT)
@@ -62,6 +60,18 @@ class SendingWindow(QWidget):
         self.add_patient_button.setFixedHeight(BUTTON_HEIGHT)
         self.patient.textChanged.connect(self.filter_patient_list)
         self.patient_list.clicked.connect(self.select_patient)
+
+    def set_texts(self):
+        self.filter_patient_list()
+        self.add_patient_button.setText(locales[self.settings_window.locale]['add_patient'])
+        self.send_measurement_button.setText(locales[self.settings_window.locale]['send'])
+        self.login_button.setText(locales[self.settings_window.locale]['log_in'])
+        self.login.setPlaceholderText(locales[self.settings_window.locale]['login'])
+        self.password.setPlaceholderText(locales[self.settings_window.locale]['password'])
+        self.patient.setPlaceholderText(locales[self.settings_window.locale]['enter_full_name_or_notes'])
+        self.description.setPlaceholderText(locales[self.settings_window.locale]['description'])
+        if self.patients_window is not None:
+            self.patients_window.set_texts()
 
     def set_visibility(self):
         if self.is_authentificated:
@@ -107,7 +117,8 @@ class SendingWindow(QWidget):
     def update_patient_list(self):
         self.patient_list.clear()
         for patient in self.filtered_patients:
-            list_adapter = DoubleListAdapter(name='ФИО', description='Заметки')
+            list_adapter = DoubleListAdapter(name=locales[self.settings_window.locale]['full_name'],
+                                             description=locales[self.settings_window.locale]['notes'])
             list_adapter.set_name(f'{patient["Name"]} {patient["Surname"]} {patient["Patronymic"]}')
             list_adapter.set_description(patient["Notes"])
 
@@ -119,7 +130,8 @@ class SendingWindow(QWidget):
     @asyncSlot()
     async def send_measurement(self):
         if self.graph_window.selected_device is None or self.selected_patient_index is None or self.user_id is None:
-            show_error(QMessageBox.Warning, "Неправильно заполенена форма", "Должны быть выбраны пациент и устройство")
+            show_error(QMessageBox.Warning, locales[self.settings_window.locale]['form_filled_incorrectly'],
+                       locales[self.settings_window.locale]['must_select_patient_and_device'])
             return
 
         add_measurement_url = f'https://{self.settings_window.server_address}/add-measurement'
@@ -134,17 +146,19 @@ class SendingWindow(QWidget):
         }
         try:
             async with self.session.post(add_measurement_url, headers=headers, data=data, timeout=3) as r:
-                if is_network_error(r.status):
+                if is_network_error(r.status, self.settings_window.locale):
                     return
         except Exception as e:
-            show_error(QMessageBox.Critical, "Ошибка соединения", "Не удалось установить соединение с сервером")
+            show_error(QMessageBox.Critical, locales[self.settings_window.locale]['network_connection_error'],
+                       locales[self.settings_window.locale]['could_not_establish_connection'])
             print(e)
             return
 
     @asyncSlot()
     async def login_action(self):
         if self.login.text() == '' or self.password.text() == '':
-            show_error(QMessageBox.Warning, "Неправильно заполенена форма", "Логин и пароль должны быть заполнены")
+            show_error(QMessageBox.Warning, locales[self.settings_window.locale]['form_filled_incorrectly'],
+                       locales[self.settings_window.locale]['must_fill_login_and_password'])
             return
 
         login_url = f'https://{self.settings_window.server_address}/login'
@@ -154,11 +168,12 @@ class SendingWindow(QWidget):
         }
         try:
             async with self.session.post(login_url, json=data, timeout=3) as r:
-                if is_network_error(r.status):
+                if is_network_error(r.status, self.settings_window.locale):
                     return
                 data = await r.read()
         except Exception as e:
-            show_error(QMessageBox.Critical, "Ошибка соединения", "Не удалось установить соединение с сервером")
+            show_error(QMessageBox.Critical, locales[self.settings_window.locale]['network_connection_error'],
+                       locales[self.settings_window.locale]['could_not_establish_connection'])
             print(e)
             return
 
@@ -180,11 +195,12 @@ class SendingWindow(QWidget):
         headers = {"Authorization": f'Bearer {self.token}'}
         try:
             async with self.session.get(patients_url, headers=headers, timeout=3) as r:
-                if is_network_error(r.status):
+                if is_network_error(r.status, self.settings_window.locale):
                     return
                 data = await r.read()
         except Exception as e:
-            show_error(QMessageBox.Critical, "Ошибка соединения", "Не удалось установить соединение с сервером")
+            show_error(QMessageBox.Critical, locales[self.settings_window.locale]['network_connection_error'],
+                       locales[self.settings_window.locale]['could_not_establish_connection'])
             print(e)
             return
 

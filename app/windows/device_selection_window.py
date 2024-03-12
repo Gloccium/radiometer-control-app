@@ -5,6 +5,7 @@ from PyQt5.QtWidgets import QWidget, QLineEdit, QVBoxLayout, QListWidget, QListW
 
 from app.utils.calibration_validation import validate_calibration
 from app.widgets.list_adapter_widget.double_list_adapter_widget import DoubleListAdapter
+from app.locales.locales import locales
 
 
 class DeviceSelectionWindow(QWidget):
@@ -20,13 +21,13 @@ class DeviceSelectionWindow(QWidget):
 
         self.layout = QVBoxLayout(self)
         self.device = QLineEdit(self)
-        self.device_list = QListWidget()
+        self.device_list = QListWidget(self)
 
         self.calibration = QLineEdit(self)
-        self.calibration_list = QListWidget()
+        self.calibration_list = QListWidget(self)
 
         self.configure_elements()
-        self.filter_device_list()
+        self.set_texts()
         self.set_previous_device()
 
     def select_device(self):
@@ -57,7 +58,8 @@ class DeviceSelectionWindow(QWidget):
     def update_device_list(self):
         self.device_list.clear()
         for device in self.filtered_devices:
-            list_adapter = DoubleListAdapter(name='Название', description='Описание')
+            list_adapter = DoubleListAdapter(name=locales[self.settings_window.locale]['name'],
+                                             description=locales[self.settings_window.locale]['description'])
             list_adapter.set_name(device["Name"])
             list_adapter.set_description(device["Description"])
 
@@ -78,7 +80,8 @@ class DeviceSelectionWindow(QWidget):
     def update_calibration_list(self):
         self.calibration_list.clear()
         for calibration in self.filtered_calibrations:
-            list_adapter = DoubleListAdapter(name='Название', description='Описание')
+            list_adapter = DoubleListAdapter(name=locales[self.settings_window.locale]['name'],
+                                             description=locales[self.settings_window.locale]['description'])
             list_adapter.set_name(calibration["Name"])
             list_adapter.set_description(calibration["Description"])
 
@@ -103,10 +106,13 @@ class DeviceSelectionWindow(QWidget):
         if calibration_index is not None:
             self.calibration_list.setCurrentRow(calibration_index)
 
-    def configure_elements(self):
-        self.device.setPlaceholderText('Введите название или описание устройства')
-        self.calibration.setPlaceholderText('Введите название или описание калибровки')
+    def set_texts(self):
+        self.filter_device_list()
+        self.filter_calibration_list()
+        self.device.setPlaceholderText(locales[self.settings_window.locale]['enter_device_name_or_description'])
+        self.calibration.setPlaceholderText(locales[self.settings_window.locale]['enter_calibration_name_or_description'])
 
+    def configure_elements(self):
         self.layout.addWidget(self.device)
         self.layout.addWidget(self.device_list)
         self.layout.addWidget(self.calibration)

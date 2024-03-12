@@ -23,6 +23,7 @@ from app.widgets.bounds.graph_bounds import GraphBounds
 from app.windows.calibration_window import CalibrationWindow
 from app.windows.device_selection_window import DeviceSelectionWindow
 from app.windows.device_window import DeviceWindow
+from app.locales.locales import locales
 
 
 class GraphWindow(QWidget):
@@ -33,27 +34,25 @@ class GraphWindow(QWidget):
         self.sending_window = None
 
         self.plot = None
-        self.start_button = QPushButton('Начать исследование', self)
-        self.toggle_channels_button = QPushButton('Скрыть каналы', self)
-        self.finish_button = QPushButton('Закончить исследование', self)
+        self.start_button = QPushButton(self)
+        self.toggle_channels_button = QPushButton(self)
+        self.finish_button = QPushButton(self)
         self.data = []
         self.record_filename = None
 
-        self.port_list = QListWidget()
-        self.update_port_list_button = QPushButton('Обновить список портов', self)
+        self.port_list = QListWidget(self)
+        self.update_port_list_button = QPushButton(self)
         self.selected_port = None
         self.active_ports = [port.name for port in serial.tools.list_ports.comports()]
 
         self.controls = SquareLayout(self.toggle_channels_button, self.update_port_list_button,
                                      self.start_button, self.finish_button)
 
-        self.delta_graph_auto_mode = QCheckBox("Показывать весь график температуры")
-        self.delta_graph_bounds = GraphBounds('Min графика температуры', 'Max графика температуры',
-                                              self.settings_window.min_delta_graph_value, self.settings_window.max_delta_graph_value)
+        self.delta_graph_auto_mode = QCheckBox(self)
+        self.delta_graph_bounds = GraphBounds(self.settings_window.min_delta_graph_value, self.settings_window.max_delta_graph_value)
 
-        self.channels_graph_auto_mode = QCheckBox("Показывать весь график каналов")
-        self.channels_graph_bounds = GraphBounds('Min графика каналов', 'Max графика каналов',
-                                                 self.settings_window.min_channels_graph_value, self.settings_window.max_channels_graph_value)
+        self.channels_graph_auto_mode = QCheckBox(self)
+        self.channels_graph_bounds = GraphBounds(self.settings_window.min_channels_graph_value, self.settings_window.max_channels_graph_value)
 
         self.bounds_controls = SquareLayout(self.delta_graph_auto_mode, self.channels_graph_auto_mode,
                                             self.delta_graph_bounds, self.channels_graph_bounds)
@@ -61,19 +60,19 @@ class GraphWindow(QWidget):
         self.devices = []
         self.device_window = None
         self.selected_device = None
-        self.add_device_button = QPushButton('Добавить устройство', self)
+        self.add_device_button = QPushButton(self)
 
         self.calibrations = []
         self.calibration_window = None
         self.selected_calibration = None
         self.calibration_data = None
-        self.add_calibration_button = QPushButton('Добавить калибровку', self)
+        self.add_calibration_button = QPushButton(self)
 
         self.device_selection_window = None
-        self.select_device_button = QPushButton('Выбрать устройство и калибровку', self)
+        self.select_device_button = QPushButton(self)
 
         self.filename = QLineEdit(self)
-        self.select_local_calibration_button = QPushButton('Выбрать калибровку с устройства', self)
+        self.select_local_calibration_button = QPushButton(self)
 
         self.device_thread = QThread()
         self.device_controller = DeviceController()
@@ -88,6 +87,7 @@ class GraphWindow(QWidget):
         self.timer_thread.started.connect(self.timer.start)
 
         self.configure_elements()
+        self.set_texts()
         self.update_port_list()
         self.set_visibility()
 
@@ -146,11 +146,12 @@ class GraphWindow(QWidget):
         headers = {"Authorization": f'Bearer {self.sending_window.token}'}
         try:
             async with self.session.get(devices_url, headers=headers, timeout=3) as r:
-                if is_network_error(r.status):
+                if is_network_error(r.status, self.settings_window.locale):
                     return
                 data = await r.read()
         except Exception as e:
-            show_error(QMessageBox.Critical, "Ошибка соединения", "Не удалось установить соединение с сервером")
+            show_error(QMessageBox.Critical, locales[self.settings_window.locale]['network_connection_error'],
+                       locales[self.settings_window.locale]['could_not_establish_connection'])
             print(e)
             return
 
@@ -162,11 +163,12 @@ class GraphWindow(QWidget):
         headers = {"Authorization": f'Bearer {self.sending_window.token}'}
         try:
             async with self.session.get(calibrations_url, headers=headers, timeout=3) as r:
-                if is_network_error(r.status):
+                if is_network_error(r.status, self.settings_window.locale):
                     return
                 data = await r.read()
         except Exception as e:
-            show_error(QMessageBox.Critical, "Ошибка соединения", "Не удалось установить соединение с сервером")
+            show_error(QMessageBox.Critical, locales[self.settings_window.locale]['network_connection_error'],
+                       locales[self.settings_window.locale]['could_not_establish_connection'])
             print(e)
             return
 
@@ -178,14 +180,16 @@ class GraphWindow(QWidget):
 
     def start_device(self) -> None:
         if self.calibration_data is None or self.selected_port is None:
-            show_error(QMessageBox.Warning, "Ошибка запуска", "Необходимо выбрать калибровку и порт")
+            show_error(QMessageBox.Warning, locales[self.settings_window.locale]['start_error'],
+                       locales[self.settings_window.locale]['must_select_calibration_and_port'])
             return
         try:
             serial = Serial(self.device_controller.port, baudrate=self.device_controller.baudrate)
             serial.reset_input_buffer()
             serial.close()
         except SerialException:
-            show_error(QMessageBox.Critical, "Ошибка подключения", "Невозможно подключиться к выбранному порту")
+            show_error(QMessageBox.Critical, locales[self.settings_window.locale]['port_connection_error'],
+                       locales[self.settings_window.locale]['unable_connect_selected_port'])
             print('Could not open port')
             return
         self.plot.calibration_data = self.calibration_data["calibrationData"]
@@ -215,9 +219,9 @@ class GraphWindow(QWidget):
     def toggle_channels(self):
         self.plot.toggle_channels()
         if self.plot.is_channels_visible:
-            self.toggle_channels_button.setText('Скрыть каналы')
+            self.toggle_channels_button.setText(locales[self.settings_window.locale]['hide_channels'])
         else:
-            self.toggle_channels_button.setText('Показать каналы')
+            self.toggle_channels_button.setText(locales[self.settings_window.locale]['show_channels'])
 
     def toggle_delta_graph_auto_mode(self):
         if self.delta_graph_auto_mode.isChecked():
@@ -296,6 +300,29 @@ class GraphWindow(QWidget):
 
         self.plot.channels_graph.max = float(max_value)
         self.plot.rescale_channels_graph_manually()
+
+    def set_texts(self):
+        self.start_button.setText(locales[self.settings_window.locale]['start_research'])
+        self.toggle_channels_button.setText(locales[self.settings_window.locale]['hide_channels'])
+        self.finish_button.setText(locales[self.settings_window.locale]['finish_research'])
+        self.update_port_list_button.setText(locales[self.settings_window.locale]['update_port_list'])
+        self.delta_graph_auto_mode.setText(locales[self.settings_window.locale]['show_all_temperature_graph'])
+        self.delta_graph_bounds.min_label.setText(locales[self.settings_window.locale]['min_temperature_graph'])
+        self.delta_graph_bounds.max_label.setText(locales[self.settings_window.locale]['max_temperature_graph'])
+        self.channels_graph_auto_mode.setText(locales[self.settings_window.locale]['show_all_channels_graph'])
+        self.channels_graph_bounds.min_label.setText(locales[self.settings_window.locale]['min_channels_graph'])
+        self.channels_graph_bounds.max_label.setText(locales[self.settings_window.locale]['max_channels_graph'])
+        self.add_device_button.setText(locales[self.settings_window.locale]['add_device'])
+        self.add_calibration_button.setText(locales[self.settings_window.locale]['add_calibration'])
+        self.select_device_button.setText(locales[self.settings_window.locale]['select_device_and_calibration'])
+        self.select_local_calibration_button.setText(locales[self.settings_window.locale]['select_calibration_from_device'])
+        self.plot.set_texts()
+        if self.calibration_window is not None:
+            self.calibration_window.set_texts()
+        if self.device_window is not None:
+            self.device_window.set_texts()
+        if self.device_selection_window is not None:
+            self.device_selection_window.set_texts()
 
     def configure_elements(self) -> None:
         self.start_button.clicked.connect(self.start_device)

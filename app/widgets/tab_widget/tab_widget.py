@@ -3,6 +3,7 @@ from PyQt5.QtWidgets import QWidget, QTabWidget, QVBoxLayout, QGridLayout
 from app.windows.graph_window import GraphWindow
 from app.windows.sending_window import SendingWindow
 from app.windows.settings_window import SettingsWindow
+from app.locales.locales import locales
 
 
 class TabWidget(QWidget):
@@ -23,9 +24,13 @@ class TabWidget(QWidget):
         self.graph_window.sending_window = self.sending_window
         self.sending_window.graph_window = self.graph_window
 
-        self.tabs.addTab(self.graph_tab, "График")
-        self.tabs.addTab(self.sending_tab, "Отправить исследование")
-        self.tabs.addTab(self.settings_tab, "Настройки")
+        self.settings_window.graph_window = self.graph_window
+        self.settings_window.sending_window = self.sending_window
+        self.settings_window.tab_widget = self
+
+        self.tabs.addTab(self.graph_tab, '')
+        self.tabs.addTab(self.sending_tab, '')
+        self.tabs.addTab(self.settings_tab, '')
 
         self.graph_tab.layout = QGridLayout(self)
         self.graph_tab.layout.addWidget(self.graph_window.plot)
@@ -70,4 +75,10 @@ class TabWidget(QWidget):
         self.layout.addWidget(self.tabs)
         self.setLayout(self.layout)
 
+        self.set_texts()
         self.show()
+
+    def set_texts(self):
+        self.tabs.setTabText(0, locales[self.settings_window.locale]['graph'])
+        self.tabs.setTabText(1, locales[self.settings_window.locale]['send_research'])
+        self.tabs.setTabText(2, locales[self.settings_window.locale]['settings'])

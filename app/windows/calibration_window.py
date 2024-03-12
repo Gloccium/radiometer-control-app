@@ -10,6 +10,7 @@ from app.const import BUTTON_HEIGHT
 from app.utils.calibration_validation import validate_calibration
 from app.utils.error_messages import show_error, is_network_error
 from app.widgets.list_adapter_widget.double_list_adapter_widget import DoubleListAdapter
+from app.locales.locales import locales
 
 
 class CalibrationWindow(QWidget):
@@ -28,15 +29,15 @@ class CalibrationWindow(QWidget):
         self.layout = QVBoxLayout(self)
         self.name = QLineEdit(self)
         self.filename = QLineEdit(self)
-        self.file_browse_button = QPushButton('Выбрать файл', self)
+        self.file_browse_button = QPushButton(self)
         self.date = QDateEdit(self)
         self.description = QLineEdit(self)
         self.device = QLineEdit(self)
-        self.device_list = QListWidget()
-        self.send_button = QPushButton('Добавить', self)
+        self.device_list = QListWidget(self)
+        self.send_button = QPushButton(self)
 
         self.configure_elements()
-        self.filter_device_list()
+        self.set_texts()
 
     def select_device(self):
         self.selected_device_index = self.device_list.currentRow()
@@ -52,7 +53,8 @@ class CalibrationWindow(QWidget):
     def update_device_list(self):
         self.device_list.clear()
         for device in self.filtered_devices:
-            list_adapter = DoubleListAdapter(name='Название', description='Описание')
+            list_adapter = DoubleListAdapter(name=locales[self.settings_window.locale]['name'],
+                                             description=locales[self.settings_window.locale]['description'])
             list_adapter.set_name(device["Name"])
             list_adapter.set_description(device["Description"])
 
@@ -80,7 +82,8 @@ class CalibrationWindow(QWidget):
     @asyncSlot()
     async def send(self):
         if self.name.text() == '' or self.calibration_file is None:
-            show_error(QMessageBox.Warning, "Неправильно заполнена форма", "Название и файл не выбраны")
+            show_error(QMessageBox.Warning, locales[self.settings_window.locale]['form_filled_incorrectly'],
+                       locales[self.settings_window.locale]['name_and_file_not_selected'])
             return
 
         add_calibration_url = f'https://{self.settings_window.server_address}/add-calibration'
@@ -94,10 +97,11 @@ class CalibrationWindow(QWidget):
         }
         try:
             async with self.session.post(add_calibration_url, headers=headers, data=data, timeout=3) as r:
-                if is_network_error(r.status):
+                if is_network_error(r.status, self.settings_window.locale):
                     return
         except Exception as e:
-            show_error(QMessageBox.Critical, "Ошибка соединения", "Не удалось установить соединение с сервером")
+            show_error(QMessageBox.Critical, locales[self.settings_window.locale]['network_connection_error'],
+                       locales[self.settings_window.locale]['could_not_establish_connection'])
             print(e)
             return
 
@@ -106,6 +110,14 @@ class CalibrationWindow(QWidget):
     @asyncClose
     async def closeEvent(self, event):
         await self.session.close()
+
+    def set_texts(self):
+        self.file_browse_button.setText(locales[self.settings_window.locale]['select_file'])
+        self.send_button.setText(locales[self.settings_window.locale]['add'])
+        self.name.setPlaceholderText(locales[self.settings_window.locale]['name'])
+        self.device.setPlaceholderText(locales[self.settings_window.locale]['enter_device_name_or_description'])
+        self.description.setPlaceholderText(locales[self.settings_window.locale]['description'])
+        self.filter_device_list()
 
     def configure_elements(self):
         self.layout.addWidget(self.name)
@@ -117,9 +129,6 @@ class CalibrationWindow(QWidget):
         self.layout.addWidget(self.device_list)
         self.layout.addWidget(self.send_button)
         self.layout.addStretch()
-        self.name.setPlaceholderText('Название')
-        self.device.setPlaceholderText('Введите название или описание устройства')
-        self.description.setPlaceholderText('Описание')
         self.date.setDate(QDate.currentDate())
         self.filename.setDisabled(True)
         self.file_browse_button.clicked.connect(self.open_file_dialog)

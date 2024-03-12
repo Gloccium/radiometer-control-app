@@ -5,6 +5,7 @@ from PyQt5.QtCore import QDate
 from PyQt5.QtWidgets import QWidget, QPushButton, QLineEdit, QVBoxLayout, QDateEdit, QComboBox, QMessageBox
 from qasync import asyncSlot, asyncClose
 
+from app.locales.locales import locales
 from app.utils.error_messages import show_error, is_network_error
 
 
@@ -22,8 +23,9 @@ class PatientWindow(QWidget):
         self.birth_date = QDateEdit(self)
         self.sex = QComboBox(self)
         self.notes = QLineEdit(self)
-        self.send_button = QPushButton('Добавить', self)
+        self.send_button = QPushButton(self)
         self.configure_elements()
+        self.set_texts()
 
     def configure_elements(self):
         self.layout.addWidget(self.name)
@@ -34,19 +36,25 @@ class PatientWindow(QWidget):
         self.layout.addWidget(self.notes)
         self.layout.addWidget(self.send_button)
         self.layout.addStretch()
-        self.name.setPlaceholderText('Имя')
-        self.surname.setPlaceholderText('Фамилия')
-        self.patronymic.setPlaceholderText('Отчество')
-        self.notes.setPlaceholderText('Заметки')
         self.birth_date.setDate(QDate.currentDate())
-        self.sex.insertItem(0, 'М')
-        self.sex.insertItem(1, 'Ж')
+        self.sex.insertItem(0, '')
+        self.sex.insertItem(1, '')
         self.send_button.clicked.connect(self.send)
+
+    def set_texts(self):
+        self.send_button.setText(locales[self.settings_window.locale]['add'])
+        self.name.setPlaceholderText(locales[self.settings_window.locale]['patient_name'])
+        self.surname.setPlaceholderText(locales[self.settings_window.locale]['surname'])
+        self.patronymic.setPlaceholderText(locales[self.settings_window.locale]['patronymic'])
+        self.notes.setPlaceholderText(locales[self.settings_window.locale]['notes'])
+        self.sex.setItemText(0, locales[self.settings_window.locale]['male'])
+        self.sex.setItemText(1, locales[self.settings_window.locale]['female'])
 
     @asyncSlot()
     async def send(self):
         if self.name.text() == '' or self.surname.text() == '' or self.birth_date.date() == QDate.currentDate():
-            show_error(QMessageBox.Warning, "Неправильно заполенена форма", "Имя, фамилия и дата рождения должны быть заполнены")
+            show_error(QMessageBox.Warning, locales[self.settings_window.locale]['form_filled_incorrectly'],
+                       locales[self.settings_window.locale]['must_fill_first_and_last_name_and_birthdate'])
             return
 
         add_patient_url = f'https://{self.settings_window.server_address}/add-patient'
@@ -61,10 +69,11 @@ class PatientWindow(QWidget):
         }
         try:
             async with self.session.post(add_patient_url, headers=headers, json=data, timeout=3) as r:
-                if is_network_error(r.status):
+                if is_network_error(r.status, self.settings_window.locale):
                     return
         except Exception as e:
-            show_error(QMessageBox.Critical, "Ошибка соединения", "Не удалось установить соединение с сервером")
+            show_error(QMessageBox.Critical, locales[self.settings_window.locale]['network_connection_error'],
+                       locales[self.settings_window.locale]['could_not_establish_connection'])
             print(e)
             return
 

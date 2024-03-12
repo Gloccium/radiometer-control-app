@@ -10,6 +10,7 @@ from scipy import signal
 from app.widgets.graph_widget.graph_data import GraphData
 from app.messages import message_pb2
 from app.signals.my_signal import MySignal
+from app.locales.locales import locales
 
 
 class GraphWidget(FigureCanvas):
@@ -47,15 +48,14 @@ class GraphWidget(FigureCanvas):
         self.single_gs = gridspec.GridSpec(2, 1, height_ratios=[1000, 1])
         self.delta_ax = self.figure.add_subplot(self.double_gs[0])
         self.channels_ax = self.figure.add_subplot(self.double_gs[1])
-        self.delta_ax.set_title("Температура")
-        self.channels_ax.set_title("Каналы")
         self.delta_ax.grid()
         self.channels_ax.grid()
         plt.subplots_adjust(left=0.03, right=0.98)
         self.delta_lines, = self.delta_ax.plot([], [], 'r')
-        self.channel_a_lines, = self.channels_ax.plot([], [], 'g', label='Канал A')
-        self.channel_b_lines, = self.channels_ax.plot([], [], 'b', label='Канал B')
+        self.channel_a_lines, = self.channels_ax.plot([], [], 'g')
+        self.channel_b_lines, = self.channels_ax.plot([], [], 'b')
         self.channels_ax.legend(loc="upper right")
+        self.set_texts()
 
         self.delta_graph_auto_mode = False
         self.channels_graph_auto_mode = False
@@ -76,6 +76,13 @@ class GraphWidget(FigureCanvas):
 
         self.time_ms = 0
         self.configure_plot()
+
+    def set_texts(self):
+        self.delta_ax.set_title(locales[self.graph_window.settings_window.locale]['temperature'])
+        self.channels_ax.set_title(locales[self.graph_window.settings_window.locale]['channels'])
+        self.channels_ax.legend(labels=[locales[self.graph_window.settings_window.locale]['channel_a'],
+                                        locales[self.graph_window.settings_window.locale]['channel_b']])
+        plt.draw()
 
     def reinitialize_plot(self):
         self.delta_ax.clear()

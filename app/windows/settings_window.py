@@ -13,6 +13,9 @@ from app.locales.locales import locales
 class SettingsWindow(QWidget):
     def __init__(self):
         super().__init__()
+        self.graph_window = None
+        self.sending_window = None
+        self.tab_widget = None
         self.server_address = ''
         self.records_directory_path = ''
         self.calibration_directory_path = ''
@@ -25,19 +28,18 @@ class SettingsWindow(QWidget):
         self.init_config_file()
         self.init_default_directories()
         self.load_configuration()
-        self.server_address_label = QLabel(locales[self.locale]['server_address'])
+        self.server_address_label = QLabel(self)
         self.server_address_input = QLineEdit(self)
         self.records_directory = QLineEdit(self)
-        self.records_directory_button = QPushButton('Выбрать директорию для исследований', self)
+        self.records_directory_button = QPushButton(self)
         self.calibration_directory = QLineEdit(self)
-        self.calibration_directory_button = QPushButton('Выбрать директорию для калибровок', self)
-        self.save_button = QPushButton('Сохранить', self)
-        self.delta_graph_bounds = GraphBounds('Min графика температуры', 'Max графика температуры',
-                                              self.min_delta_graph_value, self.max_delta_graph_value)
-        self.channels_graph_bounds = GraphBounds('Min графика каналов', 'Max графика каналов',
-                                                 self.min_channels_graph_value, self.max_channels_graph_value)
+        self.calibration_directory_button = QPushButton(self)
+        self.save_button = QPushButton(self)
+        self.delta_graph_bounds = GraphBounds(self.min_delta_graph_value, self.max_delta_graph_value)
+        self.channels_graph_bounds = GraphBounds(self.min_channels_graph_value, self.max_channels_graph_value)
         self.locale_combobox = QComboBox(self)
         self.configure_elements()
+        self.set_texts()
 
     def select_records_directory(self):
         filename = QFileDialog.getExistingDirectory(
@@ -57,20 +59,42 @@ class SettingsWindow(QWidget):
             self.calibration_directory_path = filename
             self.calibration_directory.setText(self.calibration_directory_path)
 
+    def set_texts(self):
+        self.server_address_label.setText(locales[self.locale]['server_address'])
+        self.records_directory_button.setText(locales[self.locale]['select_researches_directory'])
+        self.calibration_directory_button.setText(locales[self.locale]['select_calibrations_directory'])
+        self.save_button.setText(locales[self.locale]['save'])
+        self.delta_graph_bounds.min_label.setText(locales[self.locale]['min_temperature_graph'])
+        self.delta_graph_bounds.max_label.setText(locales[self.locale]['max_temperature_graph'])
+        self.channels_graph_bounds.min_label.setText(locales[self.locale]['min_channels_graph'])
+        self.channels_graph_bounds.max_label.setText(locales[self.locale]['max_channels_graph'])
+        self.locale_combobox.setItemText(0, locales[self.locale]['russian'])
+        self.locale_combobox.setItemText(1, locales[self.locale]['english'])
+
+    def update_all_texts(self):
+        self.locale = self.locales[self.locale_combobox.currentIndex()]
+        self.set_texts()
+        self.tab_widget.set_texts()
+        self.graph_window.set_texts()
+        self.sending_window.set_texts()
+
     def save(self):
+        self.update_all_texts()
         self.server_address = self.server_address_input.text()
         self.records_directory_path = self.records_directory.text()
         try:
             os.makedirs(self.records_directory_path, exist_ok=True)
         except Exception as e:
             print(e)
-            show_error(QMessageBox.Critical, "Ошибка при создании директории исследований", "Директория не может быть создана")
+            show_error(QMessageBox.Critical, locales[self.locale]['creating_research_directory_error'],
+                       locales[self.locale]['cannot_create_directory'])
         self.calibration_directory_path = self.calibration_directory.text()
         try:
             os.makedirs(self.calibration_directory_path, exist_ok=True)
         except Exception as e:
             print(e)
-            show_error(QMessageBox.Critical, "Ошибка при создании директории калибровок", "Директория не может быть создана")
+            show_error(QMessageBox.Critical,  locales[self.locale]['creating_calibration_directory_error'],
+                       locales[self.locale]['cannot_create_directory'])
 
         self.save_config_file()
 
@@ -168,6 +192,6 @@ class SettingsWindow(QWidget):
         self.channels_graph_bounds.min_value.textChanged.connect(lambda: self.set_min_bound(self.channels_graph_bounds))
         self.channels_graph_bounds.max_value.textChanged.connect(lambda: self.set_max_bound(self.channels_graph_bounds))
         self.locale_combobox.setFixedHeight(BUTTON_HEIGHT)
-        self.locale_combobox.addItem(locales[self.locale]['russian'])
-        self.locale_combobox.addItem(locales[self.locale]['english'])
+        self.locale_combobox.addItem('')
+        self.locale_combobox.addItem('')
         self.locale_combobox.setCurrentIndex(self.locales.index(self.locale))
