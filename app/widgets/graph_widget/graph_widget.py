@@ -1,5 +1,6 @@
 import base64
 import binascii
+import time
 
 from PyQt5.QtWidgets import QSizePolicy
 from google.protobuf.message import DecodeError
@@ -37,10 +38,14 @@ class GraphWidget(FigureCanvas):
         self.b2_param, self.a2_param = signal.iirfilter(2, 0.1, ftype='butter', btype='lowpass', fs=400)
         self.decimation_rate = 10
 
-        self.signals_count = 0
+        self.segment_signals_count = 0
         self.previous_value = 0
         self.error_count = 0
         self.package_count = 0
+
+        self.last_signals = []
+        self.last_signals_range = 100
+        self.last_signals_time_interval = 5
 
         self.is_channels_visible = True
         self.figure = plt.figure(figsize=(21, 7))
@@ -109,6 +114,7 @@ class GraphWidget(FigureCanvas):
                                         self.channel_a_lines, self.channel_b_lines)
         self.graphs = [self.delta_graph, self.channels_graph]
 
+        self.set_texts()
         self.configure_plot()
 
     def toggle_channels(self):
@@ -152,9 +158,21 @@ class GraphWidget(FigureCanvas):
                 self.error_count += 1
                 continue
 
+    def update_status_bar(self) -> None:
+        count = 0
+        last_signal_time = self.last_signals[-1][1]
+        for sig in reversed(self.last_signals):
+            if sig[1] > last_signal_time - self.last_signals_time_interval:
+                count += sig[0]
+            else:
+                break
+        self.graph_window.status_bar.showMessage(f'{locales[self.graph_window.settings_window.locale]["signals_per"]} '
+                                                 f'{self.last_signals_time_interval}'
+                                                 f'{locales[self.graph_window.settings_window.locale]["sec"]}: {count}')
+
     def update_x_label(self) -> None:
         if self.current_step_number % (self.max_step_count // self.max_segment_count) == 0:
-            interval = self.signals_count / self.device_controller.device_frequency
+            interval = self.segment_signals_count / self.device_controller.device_frequency
             self.current_segment_number = (self.current_segment_number + 1) % self.max_segment_count
             current_time = self.time_label[self.current_segment_number - 1] + interval
             if self.total_segment_count < self.max_segment_count - 1:
@@ -163,7 +181,7 @@ class GraphWidget(FigureCanvas):
                 self.time_label[self.current_segment_number] = current_time
             [graph.ax.set_xticklabels([f'{round(tm, 1)}s' for tm in self.time_label]) for graph in self.graphs]
             self.total_segment_count += 1
-            self.signals_count = 0
+            self.segment_signals_count = 0
 
     def plot_delta(self) -> None:
         if self.delta_graph.first_full:
@@ -312,7 +330,7 @@ class GraphWidget(FigureCanvas):
             else:
                 start = 1
             starts = list(sorted(list(e.channelAStarts) + list(e.channelBStarts)))
-            self.signals_count += len(e.channelData)
+            self.segment_signals_count += len(e.channelData)
             for i in range(len(starts) - 1):
                 if start == prev and i == 0:
                     if start == 0:
@@ -331,6 +349,9 @@ class GraphWidget(FigureCanvas):
                 if start == 1:
                     self.channel_b.append(e.channelData[starts[-1]:len(e.channelData)])
             prev = start
+
+        self.last_signals.append([sum([len(e.channelData) for e in self.channel_data]), time.time()])
+        self.last_signals = self.last_signals[-self.last_signals_range:]
 
     def get_value(self) -> tuple[float, float, float] | None:
         if not self.channel_data:
@@ -385,4 +406,5 @@ class GraphWidget(FigureCanvas):
 
         self.figure.canvas.draw()
         self.figure.canvas.flush_events()
+        self.update_status_bar()
         self.update_x_label()

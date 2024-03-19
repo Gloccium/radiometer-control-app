@@ -6,7 +6,7 @@ import aiohttp
 import serial.tools.list_ports
 from PyQt5.QtCore import QThread
 from PyQt5.QtWidgets import QWidget, QPushButton, QListWidget, QListWidgetItem, QMessageBox, QFileDialog, QLineEdit, \
-    QCheckBox
+    QCheckBox, QStatusBar
 from qasync import asyncSlot, asyncClose
 from serial import Serial, SerialException
 
@@ -47,6 +47,7 @@ class GraphWindow(QWidget):
 
         self.controls = SquareLayout(self.toggle_channels_button, self.update_port_list_button,
                                      self.start_button, self.finish_button)
+        self.status_bar = QStatusBar()
 
         self.delta_graph_auto_mode = QCheckBox(self)
         self.delta_graph_bounds = GraphBounds(self.settings_window.min_delta_graph_value, self.settings_window.max_delta_graph_value)
@@ -215,6 +216,7 @@ class GraphWindow(QWidget):
         self.finish_button.setDisabled(True)
         self.plot.reinitialize_plot()
         self.device_controller.stop()
+        self.status_bar.showMessage('')
 
     def toggle_channels(self):
         self.plot.toggle_channels()

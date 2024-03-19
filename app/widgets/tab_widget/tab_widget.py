@@ -42,6 +42,7 @@ class TabWidget(QWidget):
         self.graph_tab.layout.addWidget(self.graph_window.add_calibration_button)
         self.graph_tab.layout.addWidget(self.graph_window.port_list)
         self.graph_tab.layout.addWidget(self.graph_window.controls)
+        self.graph_tab.layout.addWidget(self.graph_window.status_bar)
         self.graph_tab.setLayout(self.graph_tab.layout)
 
         self.sending_tab.layout = QVBoxLayout(self)

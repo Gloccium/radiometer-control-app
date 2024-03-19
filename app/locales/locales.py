@@ -70,6 +70,8 @@ locales = {
         "patient_name": "Имя",
         "male": "Мужской",
         "female": "Женский",
+        "signals_per": "Сигналов за",
+        "sec": "с",
     },
     "en": {
         "invalid_file_format": "Invalid file format",
@@ -142,5 +144,7 @@ locales = {
         "patient_name": "Name",
         "male": "Male",
         "female": "Female",
+        "signals_per": "Signals per",
+        "sec": "s",
     }
 }
