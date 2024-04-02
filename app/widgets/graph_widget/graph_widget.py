@@ -380,7 +380,7 @@ class GraphWidget(FigureCanvas):
             return y_max_2 + (delta - x_max_2) * (y_max - y_max_2) / (x_max - x_max_2)
         if 0 < count < len(self.calibration_data):
             x_l, y_l = self.calibration_data[count - 1]['x'], self.calibration_data[count - 1]['y']
-            x_r, y_r = self.calibration_data[count + 1]['x'], self.calibration_data[count + 1]['y']
+            x_r, y_r = self.calibration_data[count]['x'], self.calibration_data[count]['y']
             return (delta - x_l) * (y_r - y_l) / (x_r - x_l) + y_l
 
     def update_figure(self) -> None:
