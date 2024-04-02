@@ -20,12 +20,15 @@ class DeviceController(QObject):
         self.is_running = False
 
     def run(self) -> None:
-        self.is_running = True
-        self.serial = Serial(self.port, baudrate=self.baudrate)
-        self.serial.reset_input_buffer()
-        reader = Reader(self.serial)
-        while self.is_running:
-            packet = reader.readline()
-            self.channel_data.put(packet)
-        self.serial.close()
-        self.channel_data = Queue()
+        pass
+        #print(data)
+        #self.is_running = True
+        #self.serial = Serial(self.port, baudrate=self.baudrate)
+        #self.serial.reset_input_buffer()
+        #reader = Reader(self.serial)
+        #while self.is_running:
+        #    packet = reader.readline()
+        #    print(packet)
+        #    self.channel_data.put(packet)
+        #self.serial.close()
+        #self.channel_data = Queue()

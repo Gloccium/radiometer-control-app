@@ -1,7 +1,10 @@
 import base64
 import binascii
+import json
 import time
+from queue import Queue
 
+import scipy
 from PyQt5.QtWidgets import QSizePolicy
 from google.protobuf.message import DecodeError
 from matplotlib import pyplot as plt, gridspec
@@ -17,8 +20,6 @@ from app.locales.locales import locales
 class GraphWidget(FigureCanvas):
     def __init__(self, graph_window=None, device_controller=None):
         self.graph_window = graph_window
-
-        self.update_rate_ms = 200
         self.current_step_number = 0
         self.max_step_count = 2000
         self.current_segment_number = 0
@@ -79,6 +80,20 @@ class GraphWidget(FigureCanvas):
         self.signal = MySignal()
         self.signal.sig_no_args.connect(self.update_figure)
 
+        self.q1 = Queue()
+        with open(r'C:\Users\aburg\Desktop\radiometer-control-app\app\records\Record 01-04-2024 12-31 egor') as f:
+            data = f.readlines()
+            [self.q1.put(d) for d in data]
+
+        self.result1 = []
+
+        self.q2 = Queue()
+        with open(r'C:\Users\aburg\Desktop\radiometer-control-app\app\records\Record 01-04-2024 12-31 egor') as f:
+            data = f.readlines()
+            [self.q2.put(d) for d in data]
+
+        self.result2 = []
+
         self.time_ms = 0
         self.configure_plot()
 
@@ -132,13 +147,6 @@ class GraphWidget(FigureCanvas):
         for graph in self.graphs:
             graph.ax.set_xlim(0, self.max_step_count)
             graph.ax.set_xticklabels([f'{round(t, 1)}s' for t in self.time_label])
-
-    def get_packages(self) -> None:
-        self.channel_data = []
-        channel_data = [self.device_controller.channel_data.get()
-                        for _ in range(self.device_controller.channel_data.qsize())]
-        [self.graph_window.data.append(packet) for packet in channel_data]
-        self.decode_packages(channel_data)
 
     def decode_packages(self, channel_data: list[str]) -> None:
         for packet in channel_data:
@@ -314,7 +322,7 @@ class GraphWidget(FigureCanvas):
 
     @staticmethod
     def decimate(array: list[int | float], rate: int) -> list[int | float]:
-        return [array[i] for i in range(0, len(array), rate)]
+        return list(scipy.signal.decimate(array, rate, ftype='iir'))
 
     def get_delta(self) -> tuple[list[float], list[float], list[float]]:
         channel_a = [y[-1] for y in [self.iir_filter(x, self.b1_param, self.a1_param) for x in self.channel_a[-self.channel_window:]]]
@@ -384,27 +392,17 @@ class GraphWidget(FigureCanvas):
             return (delta - x_l) * (y_r - y_l) / (x_r - x_l) + y_l
 
     def update_figure(self) -> None:
-        self.get_packages()
-        delta_value, channel_a_value, channel_b_value = self.get_value() or (None, None, None)
-
-        if delta_value is None or channel_a_value is None or channel_b_value is None:
-            return
-
-        delta_value = self.calculate_calibrated_value(delta_value)
-        self.current_step_number += 1
-        self.add_points(delta_value, channel_a_value, channel_b_value)
-
-        self.check_iteration()
-        if self.delta_graph_auto_mode:
-            self.rescale_delta_graph_auto_mode()
-        if self.channels_graph_auto_mode:
-            self.rescale_channels_graph_auto_mode()
-
-        self.switch_plots()
-        self.plot_delta()
-        self.plot_channels()
-
-        self.figure.canvas.draw()
-        self.figure.canvas.flush_events()
-        self.update_status_bar()
-        self.update_x_label()
+        while self.q1.qsize() > 0:
+            print(self.q1.qsize())
+            self.channel_data = []
+            channel_data = [self.q1.get()]
+            [self.graph_window.data.append(packet) for packet in channel_data]
+            self.decode_packages(channel_data)
+            delta_value, channel_a_value, channel_b_value = self.get_value() or (None, None, None)
+            if delta_value is None or channel_a_value is None or channel_b_value is None:
+                return
+            old = delta_value
+            delta_value = self.calculate_calibrated_value(delta_value)
+            self.result1.append([self.segment_signals_count / 12000, delta_value, channel_a_value, channel_b_value, old])
+        with open('data1', 'w') as f:
+            f.write(json.dumps(self.result1, indent=4))

@@ -195,8 +195,9 @@ class GraphWindow(QWidget):
             return
         self.plot.calibration_data = self.calibration_data["calibrationData"]
         self.plot.delta_ax.set_ylabel(self.calibration_data["yLabel"])
-        self.device_thread.start()
-        self.timer_thread.start()
+        self.plot.update_figure()
+        #self.device_thread.start()
+        #self.timer_thread.start()
         self.finish_button.setDisabled(False)
         self.start_button.setDisabled(True)
 
