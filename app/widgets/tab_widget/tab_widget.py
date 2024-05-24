@@ -15,7 +15,7 @@ class TabWidget(QWidget):
         self.graph_tab = QWidget()
         self.sending_tab = QWidget()
         self.settings_tab = QWidget()
-        self.tabs.resize(1600, 1200)
+        self.tabs.resize(1920, 1080)
 
         self.settings_window = SettingsWindow()
         self.graph_window = GraphWindow(self.settings_window)

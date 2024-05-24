@@ -48,7 +48,7 @@ class GraphWidget(FigureCanvas):
         self.last_signals_time_interval = 5
 
         self.is_channels_visible = True
-        self.figure = plt.figure(figsize=(21, 7))
+        self.figure = plt.figure(figsize=(21, 5))
         self.double_gs = gridspec.GridSpec(2, 1, height_ratios=[1, 1])
         self.single_gs = gridspec.GridSpec(2, 1, height_ratios=[1000, 1])
         self.delta_ax = self.figure.add_subplot(self.double_gs[0])
@@ -143,10 +143,11 @@ class GraphWidget(FigureCanvas):
     def decode_packages(self, channel_data: list[str]) -> None:
         for packet in channel_data:
             self.package_count += 1
+            print(packet)
             try:
                 data = base64.b64decode(packet)
+                print(data)
             except binascii.Error:
-                print('Invalid packet')
                 continue
             try:
                 message = message_pb2.Message()
@@ -154,7 +155,6 @@ class GraphWidget(FigureCanvas):
                 if message.allData:
                     self.channel_data.append(message.allData)
             except DecodeError:
-                print('Invalid packet')
                 self.error_count += 1
                 continue
 
@@ -183,6 +183,7 @@ class GraphWidget(FigureCanvas):
             self.total_segment_count += 1
             self.segment_signals_count = 0
 
+    # добавление экземпляров данных на графики
     def plot_delta(self) -> None:
         if self.delta_graph.first_full:
             self.delta_graph.x1 = self.delta_graph.x1[1:len(self.delta_graph.x1)]
@@ -311,10 +312,6 @@ class GraphWidget(FigureCanvas):
         mean = sum(array) / len(array)
         filtered = signal.lfilter(b, a, [x - mean for x in array])
         return [e + mean for e in filtered]
-
-    @staticmethod
-    def decimate(array: list[int | float], rate: int) -> list[int | float]:
-        return [array[i] for i in range(0, len(array), rate)]
 
     def get_delta(self) -> tuple[list[float], list[float], list[float]]:
         channel_a = [y[-1] for y in [self.iir_filter(x, self.b1_param, self.a1_param) for x in self.channel_a[-self.channel_window:]]]
